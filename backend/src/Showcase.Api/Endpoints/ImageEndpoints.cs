@@ -1,5 +1,8 @@
 using System.Text.Json;
 using FluentValidation;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Showcase.Application;
@@ -45,7 +48,23 @@ public static class ImageEndpoints
             var type = ProfileEndpoints.Sniff(head.AsSpan(0, read));
             if (type is not ("jpg" or "png" or "webp")) return Problem("file", "Image must be a JPG, PNG or WebP file.");
             stream.Position = 0;
-            var key = await storage.SaveAsync(stream, "." + type, ct);
+
+            // Stored as WebP: a full copy (≤ 2560 px) and a small one (≤ 640 px) for grids. Camera metadata
+            // (EXIF/XMP, which can include GPS) is dropped.
+            MemoryStream full, small;
+            try
+            {
+                using var decoded = await Image.LoadAsync(stream, ct);
+                decoded.Mutate(x => x.AutoOrient());
+                full = await EncodeWebpAsync(decoded, 2560, 88, ct);
+                small = await EncodeWebpAsync(decoded, 640, 80, ct);
+            }
+            catch (Exception e) when (e is ImageFormatException or UnknownImageFormatException or InvalidImageContentException)
+            {
+                return Problem("file", "The image could not be read (damaged or not really a JPG/PNG/WebP).");
+            }
+            var key = await storage.SaveAsync(full, ".webp", ct);
+            var smallKey = await storage.SaveAsync(small, ".webp", ct);
 
             var replaced = imageKind == ImageKind.Thumbnail ? m.Images.Where(i => i.Kind == ImageKind.Thumbnail).ToList() : new List<ModelImage>();
             foreach (var old in replaced) db.ModelImages.Remove(old);
@@ -54,12 +73,13 @@ public static class ImageEndpoints
                 ModelId = id,
                 Kind = imageKind,
                 StorageKey = key,
+                SmallStorageKey = smallKey,
                 SortOrder = m.Images.Count == 0 ? 0 : m.Images.Max(i => i.SortOrder) + 1,
             };
             db.ModelImages.Add(image);
             m.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
-            foreach (var old in replaced) await storage.DeleteAsync(old.StorageKey, ct);
+            foreach (var old in replaced) await DeleteFilesAsync(storage, old, ct);
             return Results.Created(UrlOf(image), ToDto(image));
         }).DisableAntiforgery().Produces<ModelImageDto>(StatusCodes.Status201Created);
 
@@ -92,23 +112,52 @@ public static class ImageEndpoints
             if (image is null) return Results.NotFound();
             db.ModelImages.Remove(image);
             await db.SaveChangesAsync(ct);
-            await storage.DeleteAsync(image.StorageKey, ct);
+            await DeleteFilesAsync(storage, image, ct);
             return Results.NoContent();
         });
 
-        images.MapGet("/content", async (Guid imageId, AppDbContext db, IFileStorage storage, CancellationToken ct) =>
+        images.MapGet("/content", async (Guid imageId, string? size, AppDbContext db, IFileStorage storage, CancellationToken ct) =>
         {
             var image = await db.ModelImages.AsNoTracking().FirstOrDefaultAsync(i => i.Id == imageId, ct);
-            if (image is null || !storage.Exists(image.StorageKey)) return Results.NotFound();
-            var mime = Path.GetExtension(image.StorageKey) switch { ".png" => "image/png", ".webp" => "image/webp", _ => "image/jpeg" };
-            return Results.Stream(storage.OpenRead(image.StorageKey), mime, enableRangeProcessing: true);
+            return image is null ? Results.NotFound() : StreamImage(storage, image, size);
         });
     }
 
     internal static string UrlOf(ModelImage i) => $"/api/admin/images/{i.Id}/content";
 
     internal static ModelImageDto ToDto(ModelImage i) =>
-        new(i.Id, i.Kind.ToString(), UrlOf(i), i.CaptionEn, i.CaptionVi, i.SortOrder);
+        new(i.Id, i.Kind.ToString(), UrlOf(i), i.CaptionEn, i.CaptionVi, i.SortOrder,
+            i.SmallStorageKey is null ? null : UrlOf(i) + "?size=small");
+
+    /// <summary>The full image, or the small copy for ?size=small (falls back to the full one for older images).</summary>
+    internal static IResult StreamImage(IFileStorage storage, ModelImage image, string? size)
+    {
+        var key = size == "small" && image.SmallStorageKey is { } small && storage.Exists(small) ? small : image.StorageKey;
+        if (!storage.Exists(key)) return Results.NotFound();
+        var mime = System.IO.Path.GetExtension(key) switch { ".png" => "image/png", ".webp" => "image/webp", _ => "image/jpeg" };
+        return Results.Stream(storage.OpenRead(key), mime, enableRangeProcessing: true);
+    }
+
+    private static async Task DeleteFilesAsync(IFileStorage storage, ModelImage image, CancellationToken ct)
+    {
+        await storage.DeleteAsync(image.StorageKey, ct);
+        if (image.SmallStorageKey is not null) await storage.DeleteAsync(image.SmallStorageKey, ct);
+    }
+
+    private static async Task<MemoryStream> EncodeWebpAsync(Image source, int maxSide, int quality, CancellationToken ct)
+    {
+        using var copy = source.Clone(x =>
+        {
+            if (source.Width > maxSide || source.Height > maxSide)
+                x.Resize(new ResizeOptions { Mode = ResizeMode.Max, Size = new Size(maxSide, maxSide) });
+        });
+        copy.Metadata.ExifProfile = null;
+        copy.Metadata.XmpProfile = null;
+        var ms = new MemoryStream();
+        await copy.SaveAsWebpAsync(ms, new WebpEncoder { Quality = quality }, ct);
+        ms.Position = 0;
+        return ms;
+    }
 
     /// <summary>Stored JSON → settings; anything unreadable falls back to the defaults.</summary>
     internal static ViewerSettingsDto ReadSettings(string json)

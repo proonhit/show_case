@@ -42,6 +42,16 @@ Done when the sample `.fbx` converts with textures intact, the viewer shows the 
 
 GĐ1 done criteria met 08/11 (PR #6): the `docker-smoke` CI job starts the stack, logs in, creates a model, uploads 100 MB with tus and sees the Worker receive it. Tag `v0.1` after merge.
 
+## GĐ2 checklist
+
+- [x] Worker Dockerfile: .NET runtime + Blender (portable Linux, 4.2 LTS) + node/`gltf-transform` — done 08/11 (PR #15)
+- [x] `ProcessModelFile` job: .fbx → Blender convert; .glb skips this step — done 08/11 (PR #15)
+- [x] Optimize: `gltf-transform` Meshopt + WebP (KTX2 left out: needs the `toktx` tool), phone copy above 150K triangles — done 08/11 (PR #15)
+- [x] Stats with SharpGLTF → `ModelStats` (triangles, vertices, meshes, materials, textures, maps) — done 08/11 (PR #15)
+- [x] Uploaded images → WebP in 2 sizes (ImageSharp), EXIF/XMP removed — done 08/11 (PR #15)
+- [x] Job status per step (upload → convert → stats → optimize), readable errors for broken files — done 08/11 (PR #15; `GET /api/admin/models/{id}/jobs/latest`, `/api/admin/jobs/{id}`)
+- [ ] Test with the 3 sample models, record each step's time — waiting for the samples. Synthetic run in CI: a 252K-triangle .fbx made by Blender: convert 0.8 s, stats 0.05 s, optimize 1.9 s (5.9 MB → 1.9 MB, phone copy 1.6 MB)
+
 ## GĐ3 checklist
 
 - [x] pnpm workspace `frontend/`; package `viewer-core` (TypeScript, Vite library mode) — done 08/11 (PR #7)

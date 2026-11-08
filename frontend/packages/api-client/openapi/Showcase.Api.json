@@ -69,6 +69,66 @@
         }
       }
     },
+    "/api/admin/models/{id}/jobs/latest": {
+      "get": {
+        "tags": [
+          "Admin · Models"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "Admin · Models"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/files/{id}/content": {
       "get": {
         "tags": [
@@ -872,6 +932,28 @@
         }
       }
     },
+    "/api/public/models/{slug}/mobile.glb": {
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/public/images/{id}": {
       "get": {
         "tags": [
@@ -885,6 +967,13 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1105,6 +1194,13 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1149,6 +1245,34 @@
       "IFormFile": {
         "type": "string",
         "format": "binary"
+      },
+      "JobStepDto": {
+        "required": [
+          "name",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "durationMs": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "LoginRequest": {
         "required": [
@@ -1338,6 +1462,12 @@
           "sortOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "smallUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1407,6 +1537,59 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ProcessingJobDto": {
+        "required": [
+          "id",
+          "modelId",
+          "modelFileId",
+          "status",
+          "steps",
+          "error",
+          "createdAt",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modelFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobStepDto"
+            }
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -1485,6 +1668,8 @@
           "modelUrl",
           "modelBytes",
           "sourceFormat",
+          "mobileModelUrl",
+          "mobileModelBytes",
           "thumbnailUrl",
           "images",
           "updatedAt"
@@ -1574,6 +1759,19 @@
               "null",
               "string"
             ]
+          },
+          "mobileModelUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mobileModelBytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
           },
           "thumbnailUrl": {
             "type": [

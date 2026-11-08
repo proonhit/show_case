@@ -109,6 +109,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/models/{id}/jobs/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcessingJobDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    jobId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcessingJobDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/files/{id}/content": {
         parameters: {
             query?: never;
@@ -1156,7 +1230,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/public/images/{id}": {
+    "/api/public/models/{slug}/mobile.glb": {
         parameters: {
             query?: never;
             header?: never;
@@ -1166,6 +1240,43 @@ export interface paths {
         get: {
             parameters: {
                 query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/images/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    size?: string;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -1385,7 +1496,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    size?: string;
+                };
                 header?: never;
                 path: {
                     imageId: string;
@@ -1426,6 +1539,13 @@ export interface components {
         };
         /** Format: binary */
         IFormFile: string;
+        JobStepDto: {
+            name: string;
+            status: string;
+            /** Format: int64 */
+            durationMs?: null | number;
+            message?: null | string;
+        };
         LoginRequest: {
             password: string;
         };
@@ -1476,6 +1596,7 @@ export interface components {
             captionVi: null | string;
             /** Format: int32 */
             sortOrder: number;
+            smallUrl?: null | string;
         };
         ModelSummaryDto: {
             /** Format: uuid */
@@ -1493,6 +1614,21 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             thumbnailUrl?: null | string;
+        };
+        ProcessingJobDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            modelId: string;
+            /** Format: uuid */
+            modelFileId: string;
+            status: string;
+            steps: components["schemas"]["JobStepDto"][];
+            error: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            finishedAt: null | string;
         };
         ProfileDto: {
             displayName: string;
@@ -1527,6 +1663,9 @@ export interface components {
             /** Format: int64 */
             modelBytes: null | number;
             sourceFormat: null | string;
+            mobileModelUrl: null | string;
+            /** Format: int64 */
+            mobileModelBytes: null | number;
             thumbnailUrl: null | string;
             images: components["schemas"]["ModelImageDto"][];
             /** Format: date-time */

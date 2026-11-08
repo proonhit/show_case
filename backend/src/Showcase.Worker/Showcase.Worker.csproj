@@ -6,5 +6,10 @@
     <PackageReference Include="Serilog.Extensions.Hosting" Version="9.*" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="9.*" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.*" />
+    <PackageReference Include="SharpGLTF.Core" Version="1.*" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="scripts/*.py" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

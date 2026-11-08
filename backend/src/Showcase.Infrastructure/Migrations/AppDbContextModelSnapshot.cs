@@ -193,6 +193,10 @@ namespace Showcase.Infrastructure.Migrations
                     b.Property<Guid>("ModelId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("SmallStorageKey")
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
@@ -267,6 +271,49 @@ namespace Showcase.Infrastructure.Migrations
                     b.HasKey("ModelId", "Locale");
 
                     b.ToTable("ModelTranslations");
+                });
+
+            modelBuilder.Entity("Showcase.Domain.ProcessingJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ModelFileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ModelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Steps")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModelFileId");
+
+                    b.HasIndex("ModelId", "CreatedAt");
+
+                    b.ToTable("ProcessingJobs");
                 });
 
             modelBuilder.Entity("Showcase.Domain.SiteProfile", b =>
@@ -388,6 +435,21 @@ namespace Showcase.Infrastructure.Migrations
                 {
                     b.HasOne("Showcase.Domain.Model", null)
                         .WithMany("Translations")
+                        .HasForeignKey("ModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Showcase.Domain.ProcessingJob", b =>
+                {
+                    b.HasOne("Showcase.Domain.ModelFile", null)
+                        .WithMany()
+                        .HasForeignKey("ModelFileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Showcase.Domain.Model", null)
+                        .WithMany()
                         .HasForeignKey("ModelId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

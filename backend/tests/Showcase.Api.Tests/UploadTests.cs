@@ -139,3 +139,39 @@ public class UploadTests(ApiFactory factory)
         Assert.Null(UploadRules.FormatOf("robot.obj"));
     }
 }
+
+[Collection(ApiCollection.Name)]
+public class ProcessingJobTests(ApiFactory factory)
+{
+    [Fact]
+    public async Task Upload_creates_a_queued_job_with_the_upload_step_done()
+    {
+        var owner = await factory.CreateOwnerClientAsync();
+        var slug = $"job-{Guid.NewGuid():N}"[..14];
+        var created = await owner.PostAsJsonAsync("/api/admin/models", new UpsertModelRequest(slug, null, null, null, null, [new TranslationDto("en", "Job", null)]));
+        var modelId = (await created.Content.ReadFromJsonAsync<ModelSummaryDto>())!.Id;
+        Assert.Equal(HttpStatusCode.NotFound, (await owner.GetAsync($"/api/admin/models/{modelId}/jobs/latest")).StatusCode);
+
+        byte[] glb = [.. "glTF"u8, 2, 0, 0, 0, .. new byte[40]];
+        var post = new HttpRequestMessage(HttpMethod.Post, "/api/admin/uploads") { Content = new ByteArrayContent([]) };
+        post.Headers.Add("Tus-Resumable", "1.0.0");
+        post.Headers.Add("Upload-Length", glb.Length.ToString());
+        post.Headers.Add("Upload-Metadata", $"modelId {Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(modelId.ToString()))},filename {Convert.ToBase64String("a.glb"u8.ToArray())}");
+        var location = (await owner.SendAsync(post)).Headers.Location!;
+        var content = new ByteArrayContent(glb);
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/offset+octet-stream");
+        var patch = new HttpRequestMessage(HttpMethod.Patch, location) { Content = content };
+        patch.Headers.Add("Tus-Resumable", "1.0.0");
+        patch.Headers.Add("Upload-Offset", "0");
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.SendAsync(patch)).StatusCode);
+
+        // No worker runs in the API tests: the job waits in the queue.
+        var job = (await owner.GetFromJsonAsync<ProcessingJobDto>($"/api/admin/models/{modelId}/jobs/latest"))!;
+        Assert.Equal("Queued", job.Status);
+        Assert.Equal(PipelineSteps.All, job.Steps.Select(s => s.Name));
+        Assert.Equal("done", job.Steps[0].Status);
+        Assert.All(job.Steps.Skip(1), s => Assert.Equal("pending", s.Status));
+        Assert.Equal(job.Id, (await owner.GetFromJsonAsync<ProcessingJobDto>($"/api/admin/jobs/{job.Id}"))!.Id);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().GetAsync($"/api/admin/jobs/{job.Id}")).StatusCode);
+    }
+}

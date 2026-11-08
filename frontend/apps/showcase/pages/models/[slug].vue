@@ -86,7 +86,7 @@ usePageSeo({
 
     <div class="main">
       <div class="viewport">
-        <ModelStage v-if="model.modelUrl" :src="model.modelUrl" :settings="model.viewerSettings" :poster="model.thumbnailUrl"
+        <ModelStage v-if="model.modelUrl" :src="model.modelUrl" :mobile-src="model.mobileModelUrl" :settings="model.viewerSettings" :poster="model.thumbnailUrl"
           :title="info.title" @info="live = $event" />
         <template v-else>
           <img v-if="model.thumbnailUrl" :src="model.thumbnailUrl" :alt="info.title" class="still" />
@@ -118,7 +118,7 @@ usePageSeo({
       <div class="grid">
         <figure v-for="img in model.images" :key="img.id">
           <a v-if="img.url" :href="img.url" target="_blank" rel="noopener">
-            <img :src="img.url" :alt="(locale === 'vi' ? img.captionVi : img.captionEn) || info.title" loading="lazy" decoding="async" />
+            <img :src="img.smallUrl ?? img.url" :alt="(locale === 'vi' ? img.captionVi : img.captionEn) || info.title" loading="lazy" decoding="async" />
           </a>
           <figcaption v-if="img.captionEn || img.captionVi" class="muted">{{ locale === 'vi' ? img.captionVi || img.captionEn : img.captionEn || img.captionVi }}</figcaption>
         </figure>

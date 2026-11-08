@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<SiteProfile> SiteProfiles => Set<SiteProfile>();
+    public DbSet<ProcessingJob> ProcessingJobs => Set<ProcessingJob>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -53,8 +54,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.BoundingBox).HasColumnType("jsonb");
         });
 
+        b.Entity<ProcessingJob>(e =>
+        {
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Steps).HasColumnType("jsonb");
+            e.Property(x => x.Error).HasMaxLength(2000);
+            e.HasIndex(x => new { x.ModelId, x.CreatedAt });
+            e.HasOne<Model>().WithMany().HasForeignKey(x => x.ModelId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<ModelFile>().WithMany().HasForeignKey(x => x.ModelFileId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         b.Entity<ModelImage>(e =>
         {
+            e.Property(x => x.SmallStorageKey).HasMaxLength(260);
             e.Property(x => x.Kind).HasConversion<string>().HasMaxLength(16);
             e.Property(x => x.StorageKey).HasMaxLength(260);
         });
