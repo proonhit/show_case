@@ -51,14 +51,19 @@ public record TagDto(Guid Id, string NameEn, string NameVi, string Slug);
 
 public record UpsertTagRequest(string NameEn, string NameVi, string Slug);
 
-/// <summary>About page content. <c>Links</c> maps a name (linkedin, artstation, email…) to a URL or address.</summary>
+/// <summary>
+/// About page content. <c>Links</c> maps a name (linkedin, artstation, email…) to a URL or address.
+/// <c>AvatarUrl</c> and <c>CvUrl</c> are filled in on responses and ignored on requests (files have their own endpoints).
+/// </summary>
 public record ProfileDto(
     string DisplayName,
     string? HeadlineEn,
     string? HeadlineVi,
     string? BioEn,
     string? BioVi,
-    Dictionary<string, string> Links);
+    Dictionary<string, string> Links,
+    string? AvatarUrl = null,
+    string? CvUrl = null);
 
 public record MeDto(string User);
 

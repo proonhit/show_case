@@ -20,6 +20,7 @@ public static class PublicEndpoints
         g.MapGet("/tags", (AppDbContext db, CancellationToken ct) => TagEndpoints.ListAsync(db, ct));
 
         g.MapGet("/profile", (AppDbContext db, CancellationToken ct) => ProfileEndpoints.GetAsync(db, ct));
+        g.MapPublicProfileFiles();
 
         g.MapGet("/models", async (AppDbContext db, CancellationToken ct) =>
         {
