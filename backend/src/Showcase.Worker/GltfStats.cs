@@ -1,5 +1,4 @@
 using SharpGLTF.Schema2;
-using SixLabors.ImageSharp;
 using Showcase.Domain;
 
 namespace Showcase.Worker;
@@ -47,7 +46,7 @@ public static class GltfStats
             try
             {
                 using var stream = image.Content.Open();
-                var info = Image.Identify(stream);
+                var info = SixLabors.ImageSharp.Image.Identify(stream);
                 maxTexture = Math.Max(maxTexture, Math.Max(info.Width, info.Height));
             }
             catch
