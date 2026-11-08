@@ -812,7 +812,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ModelSummaryDto"
+                    "$ref": "#/components/schemas/PublicModelDto"
                   }
                 }
               }
@@ -842,10 +842,55 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ModelSummaryDto"
+                  "$ref": "#/components/schemas/PublicModelDto"
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/public/models/{slug}/model.glb": {
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/public/images/{id}": {
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -1420,6 +1465,179 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "PublicModelDto": {
+        "required": [
+          "id",
+          "slug",
+          "isFeatured",
+          "sortOrder",
+          "categorySlug",
+          "tagSlugs",
+          "translations",
+          "software",
+          "hoursSpent",
+          "completedAt",
+          "stats",
+          "viewerSettings",
+          "modelUrl",
+          "modelBytes",
+          "sourceFormat",
+          "thumbnailUrl",
+          "images",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "categorySlug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tagSlugs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "translations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranslationDto"
+            }
+          },
+          "software": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hoursSpent": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "stats": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicStatsDto"
+              }
+            ]
+          },
+          "viewerSettings": {
+            "$ref": "#/components/schemas/ViewerSettingsDto"
+          },
+          "modelUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "modelBytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "sourceFormat": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "thumbnailUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModelImageDto"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PublicStatsDto": {
+        "required": [
+          "triangles",
+          "vertices",
+          "meshes",
+          "materials",
+          "textures",
+          "maxTextureSize",
+          "hasAnimation",
+          "availableMaps"
+        ],
+        "type": "object",
+        "properties": {
+          "triangles": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vertices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "meshes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "materials": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "textures": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxTextureSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasAnimation": {
+            "type": "boolean"
+          },
+          "availableMaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
