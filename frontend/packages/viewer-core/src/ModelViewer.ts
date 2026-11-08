@@ -102,6 +102,7 @@ export class ModelViewer {
   private home?: { position: Vector3; target: Vector3 };
   private autoHome?: { position: Vector3; target: Vector3 };
   private bounds?: { center: Vector3; radius: number };
+  private needsRender = true;
   private loadToken = 0;
   private visible = true;
   private disposed = false;
@@ -145,7 +146,10 @@ export class ModelViewer {
 
     // Off-screen viewers (e.g. lower on a long page) stop rendering to save battery.
     if (typeof IntersectionObserver !== 'undefined') {
-      this.visibilityObserver = new IntersectionObserver(([entry]) => (this.visible = entry.isIntersecting));
+      this.visibilityObserver = new IntersectionObserver(([entry]) => {
+        this.visible = entry.isIntersecting;
+        if (this.visible) this.needsRender = true;
+      });
       this.visibilityObserver.observe(container);
     }
 
@@ -188,6 +192,7 @@ export class ModelViewer {
     this.model = model;
     this.scene.add(model);
     this.modes = new MaterialModes(model);
+    this.needsRender = true;
 
     if (gltf.animations.length && (this.options.playAnimation ?? true)) {
       this.mixer = new AnimationMixer(model);
@@ -227,6 +232,7 @@ export class ModelViewer {
     const changed = this.modes.mode !== mode;
     const ok = this.modes.apply(mode);
     if (ok && changed) this.emit('modechange', mode);
+    this.needsRender = true;
     return ok;
   }
 
@@ -248,6 +254,7 @@ export class ModelViewer {
     this.camera.position.copy(this.home.position);
     this.controls.target.copy(this.home.target);
     this.controls.update();
+    this.needsRender = true;
   }
 
   /** Where the camera is now — to save as the model's opening view. */
@@ -269,6 +276,7 @@ export class ModelViewer {
   /** CSS colour, or null for a transparent canvas background. */
   setBackground(color: string | null): void {
     this.scene.background = color === null ? null : new Color(color);
+    this.needsRender = true;
   }
 
   /** Degrees per second while the turntable runs. */
@@ -349,6 +357,7 @@ export class ModelViewer {
       }
       if (this.disposed) this.envTexture.dispose();
       else this.scene.environment = this.envTexture;
+      this.needsRender = true;
     } catch (e) {
       this.emit('error', e instanceof Error ? e : new Error(String(e)));
     } finally {
@@ -362,14 +371,26 @@ export class ModelViewer {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.needsRender = true;
   }
 
+  /**
+   * Draws only when something changed (camera moved, turntable, animation, mode, size…):
+   * a still model costs no GPU/CPU, which matters on phones and laptops on battery.
+   */
   private frame(): void {
     const dt = this.clock.getDelta();
     if (!this.visible) return;
     this.mixer?.update(dt);
-    this.controls.update(dt);
+    const moved = this.controls.update(dt);
+    if (!moved && !this.mixer && !this.needsRender) return;
+    this.needsRender = false;
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Asks for one more frame (after a change the render loop cannot see). */
+  invalidate(): void {
+    this.needsRender = true;
   }
 
   dispose(): void {

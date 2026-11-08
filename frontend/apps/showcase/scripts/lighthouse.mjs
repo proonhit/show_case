@@ -24,6 +24,14 @@ for (const [i, url] of urls.entries()) {
   if (row.perf < min) missed = true;
   rows.push(row);
   console.log(JSON.stringify(row));
+  // What to fix: the LCP element, render-blocking files, the heaviest downloads and main-thread work.
+  const items = (id, n = 5) => (a[id]?.details?.items ?? []).slice(0, n);
+  console.log('  LCP element:', items('largest-contentful-paint-element', 1).map((x) => x.items?.[0]?.node?.snippet ?? x.node?.snippet).join(''));
+  console.log('  LCP phases:', JSON.stringify(items('largest-contentful-paint-element', 2)[1]?.items ?? []));
+  for (const x of items('render-blocking-resources')) console.log('  render-blocking:', x.url, `${Math.round(x.wastedMs)} ms`);
+  for (const x of items('total-byte-weight')) console.log('  bytes:', x.url, `${Math.round(x.totalBytes / 1024)} KB`);
+  for (const x of items('bootup-time')) console.log('  bootup:', x.url, `${Math.round(x.total)} ms`);
+  for (const x of items('mainthread-work-breakdown')) console.log('  main thread:', x.groupLabel ?? x.group, `${Math.round(x.duration)} ms`);
 }
 
 const table = ['| Page | Performance | Accessibility | Best practices | SEO | LCP | TBT | CLS |', '|---|---|---|---|---|---|---|---|',

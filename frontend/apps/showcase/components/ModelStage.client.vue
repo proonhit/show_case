@@ -1,8 +1,18 @@
 <script setup lang="ts">
 // WebGL viewer for one model. Client-only (".client.vue"): the static HTML shows the poster instead.
-import { MAP_MODES, availableModes, modeForKey, type CameraView, type MapMode, type ModelInfo } from '@showcase/viewer-core';
-import { ModelViewerView } from '@showcase/viewer-core/vue';
+import type { CameraView, ModelInfo } from '@showcase/viewer-core';
+import { MAP_MODES, availableModes, modeForKey, type MapMode } from '@showcase/viewer-core/modes';
 import type { ViewerSettings } from '~/composables/site';
+
+// three.js (~600 KB) is its own chunk, fetched once the page is idle: text and the poster image
+// show first, then the live viewer takes over.
+const ModelViewerView = defineAsyncComponent(() => import('@showcase/viewer-core/vue').then((m) => m.ModelViewerView));
+const started = ref(false);
+onMounted(() => {
+  const start = () => (started.value = true);
+  if ('requestIdleCallback' in window) window.requestIdleCallback(start, { timeout: 1500 });
+  else setTimeout(start, 200);
+});
 
 const props = defineProps<{ src: string; settings: ViewerSettings; poster: string | null; title: string }>();
 const emit = defineEmits<{ info: [info: ModelInfo] }>();
@@ -41,7 +51,7 @@ const badge = computed(() => {
 
 <template>
   <div class="stage" tabindex="0" :aria-label="`${title}: ${t('detail.hint')}`" @keydown="onKey">
-    <ModelViewerView ref="viewer" :src="src" v-model:mode="mode" v-model:autoRotate="spin"
+    <ModelViewerView v-if="started" ref="viewer" :src="src" v-model:mode="mode" v-model:autoRotate="spin"
       :auto-rotate-speed="settings.autoRotateSpeed" :background="settings.background ?? null" :camera="camera"
       @progress="progress = $event.ratio" @load="onLoad" @error="error = $event.message" />
     <img v-if="!info && poster" :src="poster" alt="" class="poster" />

@@ -7,6 +7,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
+    "./modes": "./src/modes.ts",
     "./vue": "./src/vue.ts"
   },
   "files": [

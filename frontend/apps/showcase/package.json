@@ -12,6 +12,8 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource/be-vietnam-pro": "^5.1.0",
+    "@fontsource/jetbrains-mono": "^5.1.0",
     "@nuxtjs/i18n": "^9.1.0",
     "@showcase/viewer-core": "workspace:*",
     "nuxt": "^3.15.0",
