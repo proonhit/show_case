@@ -36,7 +36,7 @@ public class UploadTests(ApiFactory factory)
     private static async Task<Guid> CreateModelAsync(HttpClient owner)
     {
         var slug = $"upload-{Guid.NewGuid():N}"[..15];
-        var res = await owner.PostAsJsonAsync("/api/admin/models", new CreateModelRequest(
+        var res = await owner.PostAsJsonAsync("/api/admin/models", new UpsertModelRequest(
             slug, null, null, null, null, [new TranslationDto("en", "Upload test", null)]));
         res.EnsureSuccessStatusCode();
         return (await res.Content.ReadFromJsonAsync<ModelSummaryDto>())!.Id;

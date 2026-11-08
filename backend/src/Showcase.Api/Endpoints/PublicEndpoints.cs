@@ -17,11 +17,14 @@ public static class PublicEndpoints
                 .Select(c => new CategoryDto(c.Id, c.NameEn, c.NameVi, c.Slug, c.SortOrder))
                 .ToListAsync(ct));
 
+        g.MapGet("/tags", (AppDbContext db, CancellationToken ct) => TagEndpoints.ListAsync(db, ct));
+
+        g.MapGet("/profile", (AppDbContext db, CancellationToken ct) => ProfileEndpoints.GetAsync(db, ct));
+
         g.MapGet("/models", async (AppDbContext db, CancellationToken ct) =>
         {
-            var models = await db.Models.AsNoTracking()
+            var models = await ModelEndpoints.WithDetails(db.Models.AsNoTracking())
                 .Where(m => m.Status == ModelStatus.Published)
-                .Include(m => m.Translations).Include(m => m.Category).Include(m => m.Stats)
                 .OrderByDescending(m => m.IsFeatured).ThenBy(m => m.SortOrder)
                 .ToListAsync(ct);
             return models.Select(ModelEndpoints.ToSummary);
@@ -29,8 +32,7 @@ public static class PublicEndpoints
 
         g.MapGet("/models/{slug}", async (string slug, AppDbContext db, CancellationToken ct) =>
         {
-            var m = await db.Models.AsNoTracking()
-                .Include(x => x.Translations).Include(x => x.Category).Include(x => x.Stats)
+            var m = await ModelEndpoints.WithDetails(db.Models.AsNoTracking())
                 .FirstOrDefaultAsync(x => x.Slug == slug && x.Status == ModelStatus.Published, ct);
             return m is null ? Results.NotFound() : Results.Ok(ModelEndpoints.ToSummary(m));
         });

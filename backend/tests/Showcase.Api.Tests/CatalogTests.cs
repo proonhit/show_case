@@ -37,7 +37,7 @@ public class CatalogTests(ApiFactory factory)
     public async Task Model_requires_an_english_title()
     {
         var client = await factory.CreateOwnerClientAsync();
-        var res = await client.PostAsJsonAsync("/api/admin/models", new CreateModelRequest(
+        var res = await client.PostAsJsonAsync("/api/admin/models", new UpsertModelRequest(
             Unique("helmet"), null, null, null, null, [new TranslationDto("vi", "Mũ giáp", null)]));
         Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
     }
@@ -49,7 +49,7 @@ public class CatalogTests(ApiFactory factory)
         var anon = factory.CreateClient();
         var slug = Unique("helmet");
 
-        var res = await owner.PostAsJsonAsync("/api/admin/models", new CreateModelRequest(
+        var res = await owner.PostAsJsonAsync("/api/admin/models", new UpsertModelRequest(
             slug, null, "Blender", 36, new DateOnly(2026, 3, 15),
             [new TranslationDto("en", "Sci-fi Helmet", "Game-ready helmet."), new TranslationDto("vi", "Mũ giáp sci-fi", null)]));
         Assert.Equal(HttpStatusCode.Created, res.StatusCode);
@@ -72,7 +72,7 @@ public class CatalogTests(ApiFactory factory)
     {
         var owner = await factory.CreateOwnerClientAsync();
         var slug = Unique("radio");
-        var request = new CreateModelRequest(slug, null, null, null, null, [new TranslationDto("en", "Retro Radio", null)]);
+        var request = new UpsertModelRequest(slug, null, null, null, null, [new TranslationDto("en", "Retro Radio", null)]);
 
         var model = (await (await owner.PostAsJsonAsync("/api/admin/models", request)).Content.ReadFromJsonAsync<ModelSummaryDto>())!;
         Assert.Equal(HttpStatusCode.NoContent, (await owner.DeleteAsync($"/api/admin/models/{model.Id}")).StatusCode);
