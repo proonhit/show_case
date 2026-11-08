@@ -7,12 +7,14 @@ type Schemas = components['schemas'];
 export type CategoryDto = Schemas['CategoryDto'];
 export type ModelDetailDto = Schemas['ModelDetailDto'];
 export type ModelFileDto = Schemas['ModelFileDto'];
+export type ModelImageDto = Schemas['ModelImageDto'];
 export type ModelSummaryDto = Schemas['ModelSummaryDto'];
 export type ProfileDto = Schemas['ProfileDto'];
 export type StudioStatsDto = Schemas['StudioStatsDto'];
 export type TagDto = Schemas['TagDto'];
 export type TranslationDto = Schemas['TranslationDto'];
 export type UpsertModelRequest = Schemas['UpsertModelRequest'];
+export type ViewerSettingsDto = Schemas['ViewerSettingsDto'];
 
 export type ModelStatus = 'Draft' | 'Published' | 'Archived';
 
