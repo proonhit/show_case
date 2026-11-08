@@ -195,8 +195,9 @@ export class ModelViewer {
 
     this.frameModel(model);
     const info = { ...countModel(model), animations: gltf.animations.length, available: this.modes.available };
-    this.emit('load', info);
+    // 'final' first, so a listener of 'load' can pick another mode without being overwritten.
     this.emit('modechange', 'final');
+    this.emit('load', info);
     return info;
   }
 

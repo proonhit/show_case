@@ -1,4 +1,4 @@
-import { defineComponent, h, onBeforeUnmount, onMounted, ref, shallowRef, watch, type PropType } from 'vue';
+import { defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch, type PropType } from 'vue';
 import { ModelViewer, type CameraView, type ModelInfo, type ViewerOptions, type ViewerProgress } from './ModelViewer';
 import type { MapMode } from './modes';
 
@@ -35,7 +35,6 @@ export const ModelViewerView = defineComponent({
       if (!viewer.value || !src) return;
       try {
         await viewer.value.load(src);
-        viewer.value.setMode(props.mode);
       } catch {
         // reported through the 'error' event
       }
@@ -50,7 +49,11 @@ export const ModelViewerView = defineComponent({
         ...(props.background !== undefined ? { background: props.background } : {}),
       });
       v.on('progress', (p) => emit('progress', p));
-      v.on('load', (i) => emit('load', i));
+      // After 'load' the parent may choose a mode (e.g. a saved default); apply it once props have updated.
+      v.on('load', (i) => {
+        emit('load', i);
+        void nextTick(() => v.setMode(props.mode));
+      });
       v.on('error', (e) => emit('error', e));
       v.on('modechange', (m) => emit('update:mode', m));
       v.on('autorotatechange', (on) => emit('update:autoRotate', on));

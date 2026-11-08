@@ -41,7 +41,7 @@ test('log in → create model → upload .glb → preview map modes → publish'
   const id = page.url().split('/').pop()!;
 
   // Upload through tus; the server checks the bytes and records version 1.
-  await page.locator('input[type=file]').setInputFiles(cube);
+  await page.locator('input[type=file][accept=".glb,.fbx"]').setInputFiles(cube);
   await expect(page.getByRole('status')).toContainText('Đã nhận cube.glb');
   await expect(page.getByText('v1 · .glb')).toBeVisible();
 
@@ -116,7 +116,7 @@ test('a file that only pretends to be .glb is refused', async ({ page }) => {
   await page.getByLabel('Tên (bắt buộc)').fill(`Fake ${Date.now().toString(36)}`);
   await page.getByRole('button', { name: 'Tạo model' }).click();
   await expect(page).toHaveURL(/\/models\/[0-9a-f-]{36}$/);
-  await page.locator('input[type=file]').setInputFiles({ name: 'fake.glb', mimeType: 'model/gltf-binary', buffer: Buffer.from('<html>not a model</html>') });
+  await page.locator('input[type=file][accept=".glb,.fbx"]').setInputFiles({ name: 'fake.glb', mimeType: 'model/gltf-binary', buffer: Buffer.from('<html>not a model</html>') });
   await expect(page.getByRole('alert')).toContainText('nội dung không phải .glb/.fbx hợp lệ');
 });
 
