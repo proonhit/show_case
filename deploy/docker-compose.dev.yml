@@ -1,0 +1,23 @@
+# Local development services. Usage (from the repo root):
+#   cp deploy/.env.example deploy/.env   # then edit the values
+#   docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env up -d
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-showcase}
+      POSTGRES_USER: ${POSTGRES_USER:-showcase}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-showcase} -d ${POSTGRES_DB:-showcase}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
