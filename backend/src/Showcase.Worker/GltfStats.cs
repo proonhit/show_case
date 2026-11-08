@@ -22,7 +22,9 @@ public static class GltfStats
         }
         catch (Exception e)
         {
-            throw new InvalidDataException($"The file is not a readable glTF/GLB ({e.Message}).");
+            // Keep the reader's first sentence: enough to see what is wrong without the library's advice text.
+            var reason = e.Message.Split(". ", 2)[0].TrimEnd('.');
+            throw new InvalidDataException($"The file is not a readable glTF/GLB: {reason}. Re-export it and upload again.");
         }
 
         long triangles = 0, vertices = 0;
