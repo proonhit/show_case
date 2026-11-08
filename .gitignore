@@ -35,3 +35,7 @@ backups/
 spikes/**/out/
 samples/
 *.blend1
+
+# Playwright
+frontend/apps/studio/test-results/
+frontend/apps/studio/playwright-report/

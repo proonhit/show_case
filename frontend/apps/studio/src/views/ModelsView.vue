@@ -169,7 +169,7 @@ function nudge(m: ModelSummaryDto, delta: number) {
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { min-height: 36px; padding: 6px 12px; border-radius: 999px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font: 500 13px var(--font); cursor: pointer; }
 .chip[aria-pressed='true'] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
-.table-box { padding: 6px 12px; overflow-x: auto; }
+.table-box { position: relative; padding: 6px 12px; overflow-x: auto; } /* positioned: keeps the hidden keyboard buttons inside the scroll box */
 table { width: 100%; min-width: 860px; border-collapse: collapse; }
 th { text-align: left; padding: 10px 8px; font-size: 11px; font-weight: 500; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); }
 td { padding: 9px 8px; border-top: 1px solid var(--border); vertical-align: middle; }

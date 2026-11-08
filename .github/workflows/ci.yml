@@ -71,7 +71,7 @@ jobs:
         run: pnpm build
 
   docker-smoke:
-    name: Docker stack smoke test
+    name: Docker stack smoke test + Studio e2e
     runs-on: ubuntu-latest
     needs: backend
     steps:
@@ -97,6 +97,35 @@ jobs:
             sleep 2
           done
           echo "Worker did not process the upload"; exit 1
+
+      # Studio end-to-end in a real browser against the same stack.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Studio e2e (Playwright)
+        working-directory: frontend
+        env:
+          E2E_PASSWORD: smoke-password
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @showcase/studio build
+          pnpm --filter @showcase/studio exec playwright install --with-deps chromium
+          pnpm --filter @showcase/studio e2e
+
+      - name: Upload screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-e2e
+          path: |
+            frontend/apps/studio/test-results/
+            frontend/apps/studio/playwright-report/
+          retention-days: 14
 
       - name: Logs
         if: always()
