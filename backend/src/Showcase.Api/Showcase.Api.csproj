@@ -1,4 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <!-- The API contract for the frontend: `dotnet build -p:OpenApiGenerateDocuments=true` writes
+         frontend/packages/api-client/openapi/Showcase.Api.json (the "API contract" workflow does this). -->
+    <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../../../frontend/packages/api-client/openapi</OpenApiDocumentsDirectory>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Showcase.Infrastructure\Showcase.Infrastructure.csproj" />
   </ItemGroup>
@@ -6,5 +12,9 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.*" />
     <PackageReference Include="Serilog.AspNetCore" Version="9.*" />
     <PackageReference Include="tusdotnet" Version="2.*" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

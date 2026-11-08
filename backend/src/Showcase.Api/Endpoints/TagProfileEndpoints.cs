@@ -25,7 +25,7 @@ public static class TagEndpoints
             db.Tags.Add(t);
             await db.SaveChangesAsync(ct);
             return Results.Created($"/api/admin/tags/{t.Id}", ToDto(t));
-        });
+        }).Produces<TagDto>(StatusCodes.Status201Created);
 
         g.MapPut("/{id:guid}", async (Guid id, UpsertTagRequest req, IValidator<UpsertTagRequest> v, AppDbContext db, CancellationToken ct) =>
         {
@@ -38,7 +38,7 @@ public static class TagEndpoints
             (t.NameEn, t.NameVi, t.Slug) = (req.NameEn, req.NameVi, req.Slug);
             await db.SaveChangesAsync(ct);
             return Results.Ok(ToDto(t));
-        });
+        }).Produces<TagDto>();
 
         g.MapDelete("/{id:guid}", async (Guid id, AppDbContext db, CancellationToken ct) =>
         {
@@ -76,7 +76,7 @@ public static class ProfileEndpoints
             p.Links = JsonSerializer.Serialize(req.Links);
             await db.SaveChangesAsync(ct);
             return Results.Ok(ToDto(p));
-        });
+        }).Produces<ProfileDto>();
     }
 
     internal static async Task<ProfileDto> GetAsync(AppDbContext db, CancellationToken ct) =>

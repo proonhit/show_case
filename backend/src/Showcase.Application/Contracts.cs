@@ -58,3 +58,10 @@ public record ProfileDto(
     string? BioEn,
     string? BioVi,
     Dictionary<string, string> Links);
+
+public record MeDto(string User);
+
+public record ReorderModelsRequest(List<Guid> Ids);
+
+/// <summary>Dashboard numbers. StorageBytes counts every stored file version.</summary>
+public record StudioStatsDto(int Total, int Published, int Draft, int Archived, long StorageBytes);

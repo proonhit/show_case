@@ -27,7 +27,7 @@ public static class CategoryEndpoints
             db.Categories.Add(c);
             await db.SaveChangesAsync(ct);
             return Results.Created($"/api/admin/categories/{c.Id}", new CategoryDto(c.Id, c.NameEn, c.NameVi, c.Slug, c.SortOrder));
-        });
+        }).Produces<CategoryDto>(StatusCodes.Status201Created);
 
         g.MapPut("/{id:guid}", async (Guid id, UpsertCategoryRequest req, IValidator<UpsertCategoryRequest> v, AppDbContext db, CancellationToken ct) =>
         {
@@ -40,7 +40,7 @@ public static class CategoryEndpoints
             (c.NameEn, c.NameVi, c.Slug, c.SortOrder) = (req.NameEn, req.NameVi, req.Slug, req.SortOrder);
             await db.SaveChangesAsync(ct);
             return Results.Ok(new CategoryDto(c.Id, c.NameEn, c.NameVi, c.Slug, c.SortOrder));
-        });
+        }).Produces<CategoryDto>();
 
         g.MapDelete("/{id:guid}", async (Guid id, AppDbContext db, CancellationToken ct) =>
         {

@@ -113,3 +113,36 @@ public class CatalogEditTests(ApiFactory factory)
         Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync("/api/admin/profile")).StatusCode);
     }
 }
+
+[Collection(ApiCollection.Name)]
+public class StudioTests(ApiFactory factory)
+{
+    [Fact]
+    public async Task Reorder_puts_models_in_the_given_order()
+    {
+        var owner = await factory.CreateOwnerClientAsync();
+        var ids = new List<Guid>();
+        foreach (var n in new[] { "one", "two", "three" })
+        {
+            var slug = $"order-{n}-{Guid.NewGuid():N}"[..20];
+            var res = await owner.PostAsJsonAsync("/api/admin/models", new UpsertModelRequest(slug, null, null, null, null, [new TranslationDto("en", n, null)]));
+            ids.Add((await res.Content.ReadFromJsonAsync<ModelSummaryDto>())!.Id);
+        }
+
+        var wanted = new List<Guid> { ids[2], ids[0], ids[1] };
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.PutAsJsonAsync("/api/admin/models/order", new ReorderModelsRequest(wanted))).StatusCode);
+
+        var list = (await owner.GetFromJsonAsync<List<ModelSummaryDto>>("/api/admin/models"))!;
+        Assert.Equal(wanted, list.Take(3).Select(m => m.Id));
+    }
+
+    [Fact]
+    public async Task Stats_and_me_answer_for_the_owner()
+    {
+        var owner = await factory.CreateOwnerClientAsync();
+        var stats = (await owner.GetFromJsonAsync<StudioStatsDto>("/api/admin/stats"))!;
+        Assert.Equal(stats.Total, stats.Published + stats.Draft + stats.Archived);
+        Assert.Equal("owner", (await owner.GetFromJsonAsync<MeDto>("/api/auth/me"))!.User);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().GetAsync("/api/admin/stats")).StatusCode);
+    }
+}

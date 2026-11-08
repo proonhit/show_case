@@ -1,0 +1,53 @@
+name: API contract
+
+# Keeps the frontend's typed API client in step with the backend:
+# builds the API to write its OpenAPI document, regenerates the TypeScript types
+# and pushes both back to the branch when they changed.
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - backend/src/**
+      - frontend/packages/api-client/package.json
+      - .github/workflows/api-contract.yml
+
+permissions:
+  contents: write
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Write OpenAPI document
+        working-directory: backend
+        run: dotnet build src/Showcase.Api -c Release -p:OpenApiGenerateDocuments=true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate TypeScript types
+        working-directory: frontend
+        run: |
+          if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile; else pnpm install --no-frozen-lockfile; fi
+          pnpm --filter @showcase/api-client generate
+
+      - name: Commit if changed
+        run: |
+          git add frontend/packages/api-client/openapi frontend/packages/api-client/src/schema.d.ts frontend/pnpm-lock.yaml
+          if git diff --cached --quiet; then echo "Contract unchanged"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(api-client): update OpenAPI document and types"
+          git push

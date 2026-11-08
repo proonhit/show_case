@@ -35,6 +35,6 @@ public static class PublicEndpoints
             var m = await ModelEndpoints.WithDetails(db.Models.AsNoTracking())
                 .FirstOrDefaultAsync(x => x.Slug == slug && x.Status == ModelStatus.Published, ct);
             return m is null ? Results.NotFound() : Results.Ok(ModelEndpoints.ToSummary(m));
-        });
+        }).Produces<ModelSummaryDto>();
     }
 }
