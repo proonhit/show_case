@@ -18,7 +18,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", _db.GetConnectionString());
-        builder.UseSetting("Database:AutoCreate", "true");
+        builder.UseSetting("Database:AutoMigrate", "true");
+        builder.UseSetting("Upload:TempPath", Path.Combine(_uploads, "tus"));
+        builder.UseSetting("Upload:MaxMegabytes", "5");
         builder.UseSetting("Storage:Root", _uploads);
         builder.UseSetting("Auth:AdminPasswordHash", new PasswordHasher<object>().HashPassword(new object(), Password));
         builder.UseSetting("Auth:LoginPermitPerMinute", "1000");
