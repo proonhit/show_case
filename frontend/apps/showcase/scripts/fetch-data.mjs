@@ -1,0 +1,61 @@
+// Prepares the data the static Showcase is built from.
+//   API_URL=http://localhost:5080 node scripts/fetch-data.mjs   → published content from the API
+//   node scripts/fetch-data.mjs                                 → the sample in sample/ (CI, first run)
+// Writes data/site.json and downloads every file the pages show into public/media/,
+// so the deployed site never calls the API.
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const dataFile = join(root, 'data', 'site.json');
+const mediaDir = join(root, 'public', 'media');
+const api = process.env.API_URL?.replace(/\/$/, '');
+
+await rm(mediaDir, { recursive: true, force: true });
+await mkdir(dirname(dataFile), { recursive: true });
+
+if (!api) {
+  await cp(join(root, 'sample', 'media'), mediaDir, { recursive: true });
+  await writeFile(dataFile, await readFile(join(root, 'sample', 'site.json')));
+  console.log('Showcase data: sample (set API_URL to build from the API)');
+  process.exit(0);
+}
+
+const get = async (path) => {
+  const res = await fetch(api + path);
+  if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+  return res.json();
+};
+const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'application/pdf': 'pdf', 'model/gltf-binary': 'glb' };
+
+/** Downloads an API file into public/media/<folder>/<name>.<ext> and returns its site URL. */
+async function download(url, folder, name) {
+  if (!url) return null;
+  const res = await fetch(api + url);
+  if (!res.ok) {
+    console.warn(`  skipped ${url}: HTTP ${res.status}`);
+    return null;
+  }
+  const ext = EXT[(res.headers.get('content-type') ?? '').split(';')[0]] ?? 'bin';
+  const file = `${name}.${ext}`;
+  await mkdir(join(mediaDir, folder), { recursive: true });
+  await writeFile(join(mediaDir, folder, file), Buffer.from(await res.arrayBuffer()));
+  return `/media/${folder}/${file}`;
+}
+
+const [profile, categories, tags, models] = await Promise.all([
+  get('/api/public/profile'), get('/api/public/categories'), get('/api/public/tags'), get('/api/public/models'),
+]);
+
+profile.avatarUrl = await download(profile.avatarUrl, 'profile', 'avatar');
+profile.cvUrl = await download(profile.cvUrl, 'profile', 'cv');
+for (const m of models) {
+  m.modelUrl = await download(m.modelUrl, 'models', m.slug);
+  m.thumbnailUrl = await download(m.thumbnailUrl, 'thumbs', m.slug);
+  for (const img of m.images) img.url = await download(img.url, 'images', img.id);
+}
+
+const site = { generatedAt: new Date().toISOString(), profile, categories, tags, models };
+await writeFile(dataFile, JSON.stringify(site, null, 2));
+console.log(`Showcase data: ${models.length} published models from ${api}`);

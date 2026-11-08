@@ -1,0 +1,6 @@
+.nuxt/
+.output/
+data/site.json
+public/media/
+test-results/
+playwright-report/

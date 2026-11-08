@@ -93,3 +93,37 @@ public record ReorderModelsRequest(List<Guid> Ids);
 
 /// <summary>Dashboard numbers. StorageBytes counts every stored file version.</summary>
 public record StudioStatsDto(int Total, int Published, int Draft, int Archived, long StorageBytes);
+
+/// <summary>
+/// One published model as the Showcase build needs it. URLs are relative to the API; the build downloads them.
+/// <c>ModelUrl</c> is the optimized .glb when processing has run, otherwise the uploaded .glb (null for an unconverted .fbx).
+/// </summary>
+public record PublicModelDto(
+    Guid Id,
+    string Slug,
+    bool IsFeatured,
+    int SortOrder,
+    string? CategorySlug,
+    IReadOnlyList<string> TagSlugs,
+    IReadOnlyList<TranslationDto> Translations,
+    string? Software,
+    int? HoursSpent,
+    DateOnly? CompletedAt,
+    PublicStatsDto? Stats,
+    ViewerSettingsDto ViewerSettings,
+    string? ModelUrl,
+    long? ModelBytes,
+    string? SourceFormat,
+    string? ThumbnailUrl,
+    IReadOnlyList<ModelImageDto> Images,
+    DateTimeOffset UpdatedAt);
+
+public record PublicStatsDto(
+    int Triangles,
+    int Vertices,
+    int Meshes,
+    int Materials,
+    int Textures,
+    int MaxTextureSize,
+    bool HasAnimation,
+    IReadOnlyList<string> AvailableMaps);
