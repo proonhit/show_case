@@ -26,4 +26,18 @@ Working rules: every phase ends with a runnable build and a git tag; `main` alwa
 
 Done when the sample `.fbx` converts with textures intact, the viewer shows the roughness channel correctly, and the heavy model is ≤ 10 MB after optimization.
 
+## GĐ1 checklist
+
+- [x] .NET solution: Api, Application, Domain, Infrastructure + tests — done 08/11 (PR #2); Worker project comes with Hangfire
+- [ ] `deploy/docker-compose.dev.yml` with PostgreSQL + nginx — PostgreSQL done (PR #2), nginx pending
+- [ ] Entities + EF Core migration + seed — entities and DbContext done (PR #2), migration and seed pending
+- [x] Single-password login: cookie auth, rate limit, `/api/auth/login|me|logout` — done 08/11 (PR #2)
+- [x] `IFileStorage` + `LocalFileStorage` — done 08/11 (PR #2)
+- [ ] Chunked upload with tusdotnet, 100 MB limit, magic-byte check
+- [ ] Admin CRUD: models (EN/VI), categories, tags, profile — categories and models create/status/soft delete done (PR #2); model edit, tags, profile pending
+- [ ] Public API: list, detail by slug, categories, tags, profile — list, detail, categories done (PR #2); tags, profile pending
+- [ ] Hangfire on PostgreSQL + Worker running a sample job
+- [x] OpenAPI, Serilog, `/health` — done 08/11 (PR #2)
+- [x] Tests (xUnit + Testcontainers) + GitHub Actions build/test — done 08/11 (PR #2, CI green)
+
 The detailed task list for every phase lives in the shared plan document.
