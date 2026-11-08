@@ -24,6 +24,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration).WriteTo.Console());
 
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
+builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection("Upload"));
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddValidatorsFromAssemblyContaining<UpsertCategoryValidator>();
 builder.Services.AddOpenApi();
@@ -70,11 +71,13 @@ builder.Services.AddRateLimiter(o =>
 
 var app = builder.Build();
 
-// Until EF migrations are added (needs the dotnet-ef tool), dev and test create the schema directly.
-if (app.Configuration.GetValue<bool>("Database:AutoCreate"))
+// Apply EF migrations on start (dev, tests, and the single-server production deploy).
+if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
 {
     using var scope = app.Services.CreateScope();
-    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreatedAsync();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+    await DbSeeder.SeedAsync(db);
 }
 
 app.UseSerilogRequestLogging();
@@ -89,7 +92,10 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapAuthEndpoints();
 app.MapCategoryEndpoints();
 app.MapModelEndpoints();
+app.MapTagEndpoints();
+app.MapProfileEndpoints();
 app.MapPublicEndpoints();
+app.MapUploadEndpoints();
 
 app.Run();
 

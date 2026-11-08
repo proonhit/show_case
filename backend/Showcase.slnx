@@ -4,6 +4,7 @@
     <Project Path="src/Showcase.Application/Showcase.Application.csproj" />
     <Project Path="src/Showcase.Infrastructure/Showcase.Infrastructure.csproj" />
     <Project Path="src/Showcase.Api/Showcase.Api.csproj" />
+    <Project Path="src/Showcase.Worker/Showcase.Worker.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Showcase.Api.Tests/Showcase.Api.Tests.csproj" />

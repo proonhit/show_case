@@ -11,14 +11,16 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public const string Password = "test-password-123";
 
-    private readonly PostgreSqlContainer _db = new PostgreSqlBuilder().WithImage("postgres:17-alpine").Build();
+    private readonly PostgreSqlContainer _db = new PostgreSqlBuilder("postgres:17-alpine").Build();
     private readonly string _uploads = Path.Combine(Path.GetTempPath(), "showcase-tests", Guid.NewGuid().ToString("N"));
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", _db.GetConnectionString());
-        builder.UseSetting("Database:AutoCreate", "true");
+        builder.UseSetting("Database:AutoMigrate", "true");
+        builder.UseSetting("Upload:TempPath", Path.Combine(_uploads, "tus"));
+        builder.UseSetting("Upload:MaxMegabytes", "5");
         builder.UseSetting("Storage:Root", _uploads);
         builder.UseSetting("Auth:AdminPasswordHash", new PasswordHasher<object>().HashPassword(new object(), Password));
         builder.UseSetting("Auth:LoginPermitPerMinute", "1000");

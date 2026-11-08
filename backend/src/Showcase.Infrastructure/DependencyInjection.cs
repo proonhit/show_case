@@ -1,3 +1,5 @@
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,6 +9,7 @@ namespace Showcase.Infrastructure;
 
 public static class DependencyInjection
 {
+    /// <summary>Database, file storage and the Hangfire client (job storage in PostgreSQL).</summary>
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // Read the connection string lazily so test hosts can override configuration.
@@ -15,6 +18,14 @@ public static class DependencyInjection
 
         services.Configure<StorageOptions>(configuration.GetSection("Storage"));
         services.AddSingleton<IFileStorage, LocalFileStorage>();
+
+        services.AddHangfire((sp, cfg) => cfg
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(o => o.UseNpgsqlConnection(
+                sp.GetRequiredService<IConfiguration>().GetConnectionString("Default"))));
+
         return services;
     }
 }
