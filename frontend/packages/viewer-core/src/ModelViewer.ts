@@ -101,6 +101,7 @@ export class ModelViewer {
   private mixer?: AnimationMixer;
   private home?: { position: Vector3; target: Vector3 };
   private autoHome?: { position: Vector3; target: Vector3 };
+  private bounds?: { center: Vector3; radius: number };
   private loadToken = 0;
   private visible = true;
   private disposed = false;
@@ -260,7 +261,7 @@ export class ModelViewer {
   /** Sets the opening view (null = automatic framing) and moves the camera there. */
   setCamera(view: CameraView | null): void {
     this.options.camera = view;
-    if (view) this.home = { position: new Vector3(...view.position), target: new Vector3(...view.target) };
+    if (view) this.home = this.savedHome(view);
     else if (this.autoHome) this.home = { position: this.autoHome.position.clone(), target: this.autoHome.target.clone() };
     this.resetCamera();
   }
@@ -295,25 +296,43 @@ export class ModelViewer {
   private frameModel(model: Object3D): void {
     const box = new Box3().setFromObject(model);
     const sphere = box.getBoundingSphere(new Sphere());
-    const radius = Math.max(sphere.radius, 1e-3);
-    const fov = MathUtils.degToRad(this.camera.fov);
-    const fitHeight = radius / Math.sin(fov / 2);
-    const fitWidth = fitHeight / Math.min(1, this.camera.aspect);
-    const distance = Math.max(fitHeight, fitWidth) * 1.05;
+    this.bounds = { center: sphere.center.clone(), radius: Math.max(sphere.radius, 1e-3) };
+    const distance = this.fitDistance();
 
     const direction = new Vector3(0.6, 0.35, 1).normalize();
     this.autoHome = { position: sphere.center.clone().addScaledVector(direction, distance), target: sphere.center.clone() };
-    const saved = this.options.camera;
-    this.home = saved
-      ? { position: new Vector3(...saved.position), target: new Vector3(...saved.target) }
-      : { position: this.autoHome.position.clone(), target: this.autoHome.target.clone() };
+    this.home = this.options.camera ? this.savedHome(this.options.camera) : { position: this.autoHome.position.clone(), target: this.autoHome.target.clone() };
     this.camera.near = distance / 100;
     this.camera.far = distance * 100;
     this.camera.updateProjectionMatrix();
-    this.controls.minDistance = radius * 0.5;
+    this.controls.minDistance = this.bounds.radius * 0.5;
     this.controls.maxDistance = distance * 4;
     this.resetCamera();
   }
+
+  /** Camera distance at which the whole bounding sphere fits the current canvas shape. */
+  private fitDistance(): number {
+    const radius = this.bounds?.radius ?? 1;
+    const fov = MathUtils.degToRad(this.camera.fov);
+    const fitHeight = radius / Math.sin(fov / 2);
+    const fitWidth = fitHeight / Math.min(1, this.camera.aspect);
+    return Math.max(fitHeight, fitWidth) * 1.05;
+  }
+
+  /**
+   * A saved view keeps its direction, but moves back if the model would not fit —
+   * e.g. a view saved on a wide desktop canvas, opened on a tall phone screen.
+   */
+  private savedHome(view: CameraView): { position: Vector3; target: Vector3 } {
+    const target = new Vector3(...view.target);
+    const position = new Vector3(...view.position);
+    if (!this.bounds) return { position, target };
+    const offset = position.clone().sub(target);
+    const needed = this.fitDistance() + target.distanceTo(this.bounds.center);
+    if (offset.length() < needed) position.copy(target).addScaledVector(offset.normalize(), needed);
+    return { position, target };
+  }
+
 
   // ---- rendering ----------------------------------------------------------
 

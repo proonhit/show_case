@@ -34,8 +34,8 @@ useSeoMeta({
           <NuxtLink v-else :to="localePath('/about')" class="btn big">{{ t('nav.about') }}</NuxtLink>
         </div>
         <dl class="facts">
-          <div><dt>{{ site.models.length }}</dt><dd>{{ t('home.models') }}</dd></div>
-          <div><dt>{{ usedCategories.length }}</dt><dd>{{ t('home.categories') }}</dd></div>
+          <div><dt>{{ site.models.length }}</dt><dd>{{ t('home.models', site.models.length) }}</dd></div>
+          <div v-if="usedCategories.length"><dt>{{ usedCategories.length }}</dt><dd>{{ t('home.categories', usedCategories.length) }}</dd></div>
           <div v-if="softwareList.length"><dt>{{ softwareList[0] }}</dt><dd>{{ softwareList.slice(1, 3).map((s) => `+ ${s}`).join(' ') || '&nbsp;' }}</dd></div>
         </dl>
       </div>
@@ -50,7 +50,7 @@ useSeoMeta({
 
     <section id="works" class="container works">
       <div class="works-head">
-        <div class="title-row"><h2>{{ t('home.works') }}</h2><span class="muted">{{ shown.length }} {{ t('home.models') }}</span></div>
+        <div class="title-row"><h2>{{ t('home.works') }}</h2><span class="muted">{{ shown.length }} {{ t('home.models', shown.length) }}</span></div>
         <div v-if="usedCategories.length > 1" role="group" :aria-label="t('home.filter')" class="chips">
           <button type="button" class="chip" :aria-pressed="category === null" @click="category = null">{{ t('home.all') }}</button>
           <button v-for="c in usedCategories" :key="c.slug" type="button" class="chip" :aria-pressed="category === c.slug" @click="category = c.slug">

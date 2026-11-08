@@ -67,4 +67,16 @@ Done when the demo page opens a 300K-triangle model smoothly on a laptop and a m
 
 GĐ4 done 08/11 (PRs #8–#12) apart from the upload job steps, which appear with the GĐ2 pipeline. Tag `v0.4` after merge.
 
+## GĐ5 checklist
+
+- [x] Nuxt app (SSG), @nuxtjs/i18n with `/en`, `/vi`, `en.json`/`vi.json` — done 08/11 (PR #13; design tokens instead of Tailwind)
+- [x] Header (language, light/dark), footer, theme tokens — done 08/11 (PR #13)
+- [x] Home: hero + featured model, card grid, category/tag filter on the client — done 08/11 (PR #13)
+- [x] Detail: viewer + 7 map modes, specs, extra images, previous/next; phone layout with a scrolling mode bar — done 08/11 (PR #13)
+- [x] About page (3D only), CV download — done 08/11 (PR #13)
+- [ ] SEO: title/description done (PR #13); Open Graph image, `hreflang`, `sitemap.xml`, `robots.txt` pending
+- [x] Build step: fetch `/api/public/*`, copy .glb + images into `public/`, `nuxt generate` — done 08/11 (PR #13, `scripts/fetch-data.mjs`)
+- [ ] `BuildShowcase` job in the worker + Cloudflare Pages deploy (Wrangler); auto after Publish, "Build lại ngay" button
+- [ ] Lighthouse mobile ≥ 85
+
 The detailed task list for every phase lives in the shared plan document.

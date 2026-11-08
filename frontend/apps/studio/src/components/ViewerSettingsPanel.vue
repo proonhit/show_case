@@ -52,7 +52,7 @@ const PRESETS = [
     </fieldset>
 
     <div class="camera">
-      <span v-if="settings.cameraPosition" class="muted">Góc nhìn mở đầu: đã chọn (nút “Dùng góc này” ở khung xem).</span>
+      <span v-if="settings.cameraPosition" class="muted">Góc nhìn mở đầu: đã chọn (nút “Dùng góc này” ở khung xem). Trên màn hình hẹp, camera tự lùi ra để thấy trọn model.</span>
       <span v-else class="muted">Góc nhìn mở đầu: tự căn theo kích thước model. Xoay khung xem rồi bấm “Dùng góc này” để chọn.</span>
       <button v-if="settings.cameraPosition" type="button" class="btn" @click="$emit('reset')">Về tự căn</button>
     </div>
