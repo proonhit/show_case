@@ -1,0 +1,52 @@
+name: EF migration
+
+# Creates an EF Core migration without the dotnet-ef tool installed locally:
+#   1. write the migration name (PascalCase) into backend/migration-request.txt
+#   2. push the branch
+# This workflow adds the migration under src/Showcase.Infrastructure/Migrations,
+# removes the request file and pushes the result back to the same branch.
+
+on:
+  push:
+    paths:
+      - backend/migration-request.txt
+
+permissions:
+  contents: write
+
+jobs:
+  add-migration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read request
+        id: req
+        run: |
+          name=$(tr -d '[:space:]' < backend/migration-request.txt)
+          if ! [[ "$name" =~ ^[A-Z][A-Za-z0-9]+$ ]]; then echo "Invalid migration name: '$name'"; exit 1; fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version "10.*"
+
+      - name: Add migration
+        working-directory: backend
+        run: |
+          dotnet ef migrations add "${{ steps.req.outputs.name }}" \
+            --project src/Showcase.Infrastructure \
+            --startup-project src/Showcase.Infrastructure \
+            --output-dir Migrations
+
+      - name: Commit
+        run: |
+          git rm -q backend/migration-request.txt
+          git add backend/src/Showcase.Infrastructure/Migrations
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(db): add EF migration ${{ steps.req.outputs.name }}"
+          git push
