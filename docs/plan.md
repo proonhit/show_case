@@ -28,16 +28,16 @@ Done when the sample `.fbx` converts with textures intact, the viewer shows the 
 
 ## GĐ1 checklist
 
-- [x] .NET solution: Api, Application, Domain, Infrastructure + tests — done 08/11 (PR #2); Worker project comes with Hangfire
+- [x] .NET solution: Api, Application, Domain, Infrastructure, Worker + tests — done 08/11 (PR #2, Worker in PR #3)
 - [ ] `deploy/docker-compose.dev.yml` with PostgreSQL + nginx — PostgreSQL done (PR #2), nginx pending
-- [ ] Entities + EF Core migration + seed — entities and DbContext done (PR #2), migration and seed pending
+- [ ] Entities + EF Core migration + seed — entities (PR #2) and `InitialCreate` migration applied on start (PR #3) done; seed pending
 - [x] Single-password login: cookie auth, rate limit, `/api/auth/login|me|logout` — done 08/11 (PR #2)
 - [x] `IFileStorage` + `LocalFileStorage` — done 08/11 (PR #2)
-- [ ] Chunked upload with tusdotnet, 100 MB limit, magic-byte check
+- [x] Chunked upload with tusdotnet, 100 MB limit, magic-byte check, file versions — done 08/11 (PR #3)
 - [ ] Admin CRUD: models (EN/VI), categories, tags, profile — categories and models create/status/soft delete done (PR #2); model edit, tags, profile pending
 - [ ] Public API: list, detail by slug, categories, tags, profile — list, detail, categories done (PR #2); tags, profile pending
-- [ ] Hangfire on PostgreSQL + Worker running a sample job
+- [x] Hangfire on PostgreSQL + Worker running a sample job (hourly heartbeat, processing stub) — done 08/11 (PR #3)
 - [x] OpenAPI, Serilog, `/health` — done 08/11 (PR #2)
-- [x] Tests (xUnit + Testcontainers) + GitHub Actions build/test — done 08/11 (PR #2, CI green)
+- [x] Tests (xUnit + Testcontainers) + GitHub Actions build/test — done 08/11 (PR #2, CI green; upload tests in PR #3, 20/20 pass)
 
 The detailed task list for every phase lives in the shared plan document.
