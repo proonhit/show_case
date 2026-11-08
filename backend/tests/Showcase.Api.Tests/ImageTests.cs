@@ -1,0 +1,90 @@
+using System.Net;
+using System.Net.Http.Json;
+using Showcase.Application;
+
+namespace Showcase.Api.Tests;
+
+[Collection(ApiCollection.Name)]
+public class ImageTests(ApiFactory factory)
+{
+    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, .. new byte[64]];
+
+    private static async Task<Guid> CreateModelAsync(HttpClient owner)
+    {
+        var slug = $"img-{Guid.NewGuid():N}"[..14];
+        var res = await owner.PostAsJsonAsync("/api/admin/models", new UpsertModelRequest(slug, null, null, null, null, [new TranslationDto("en", "Images", null)]));
+        return (await res.Content.ReadFromJsonAsync<ModelSummaryDto>())!.Id;
+    }
+
+    private static Task<HttpResponseMessage> UploadAsync(HttpClient c, Guid modelId, string kind, byte[] bytes)
+    {
+        var form = new MultipartFormDataContent { { new ByteArrayContent(bytes), "file", "shot.png" }, { new StringContent(kind), "kind" } };
+        return c.PostAsync($"/api/admin/models/{modelId}/images", form);
+    }
+
+    private static async Task<ModelDetailDto> DetailAsync(HttpClient owner, Guid id) =>
+        (await owner.GetFromJsonAsync<ModelDetailDto>($"/api/admin/models/{id}"))!;
+
+    [Fact]
+    public async Task Viewer_settings_default_then_save()
+    {
+        var owner = await factory.CreateOwnerClientAsync();
+        var id = await CreateModelAsync(owner);
+        var defaults = (await DetailAsync(owner, id)).ViewerSettings;
+        Assert.True(defaults.AutoRotate);
+        Assert.Equal("final", defaults.DefaultMode);
+        Assert.Null(defaults.CameraPosition);
+
+        var wanted = new ViewerSettingsDto(false, 30, "#202020", "wireframe", [1, 2, 3], [0, 0.5, 0]);
+        Assert.Equal(HttpStatusCode.OK, (await owner.PutAsJsonAsync($"/api/admin/models/{id}/viewer", wanted)).StatusCode);
+        var saved = (await DetailAsync(owner, id)).ViewerSettings;
+        Assert.Equal(("wireframe", "#202020", false, 30d), (saved.DefaultMode, saved.Background, saved.AutoRotate, saved.AutoRotateSpeed));
+        Assert.Equal(new[] { 1d, 2, 3 }, saved.CameraPosition);
+
+        var bad = wanted with { DefaultMode = "sparkle", CameraTarget = null };
+        Assert.Equal(HttpStatusCode.BadRequest, (await owner.PutAsJsonAsync($"/api/admin/models/{id}/viewer", bad)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Images_upload_caption_reorder_delete_and_single_thumbnail()
+    {
+        var owner = await factory.CreateOwnerClientAsync();
+        var id = await CreateModelAsync(owner);
+
+        Assert.Equal(HttpStatusCode.Created, (await UploadAsync(owner, id, "Thumbnail", Png)).StatusCode);
+        var render = (await (await UploadAsync(owner, id, "Render", Png)).Content.ReadFromJsonAsync<ModelImageDto>())!;
+        var process = (await (await UploadAsync(owner, id, "Process", Png)).Content.ReadFromJsonAsync<ModelImageDto>())!;
+        // A second thumbnail replaces the first.
+        var thumb = (await (await UploadAsync(owner, id, "Thumbnail", Png)).Content.ReadFromJsonAsync<ModelImageDto>())!;
+
+        var detail = await DetailAsync(owner, id);
+        Assert.Equal(3, detail.Images.Count);
+        Assert.Equal(thumb.Id, detail.Images[0].Id);
+        var summary = (await owner.GetFromJsonAsync<List<ModelSummaryDto>>("/api/admin/models"))!.Single(m => m.Id == id);
+        Assert.Equal(thumb.Url, summary.ThumbnailUrl);
+
+        var img = await owner.GetAsync(render.Url);
+        Assert.Equal("image/png", img.Content.Headers.ContentType?.MediaType);
+
+        var captioned = await owner.PatchAsJsonAsync($"/api/admin/images/{render.Id}", new UpdateImageRequest("Final render", "Ảnh render"));
+        Assert.Equal("Ảnh render", (await captioned.Content.ReadFromJsonAsync<ModelImageDto>())!.CaptionVi);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.PutAsJsonAsync($"/api/admin/models/{id}/images/order", new ReorderRequest([process.Id, render.Id]))).StatusCode);
+        var order = (await DetailAsync(owner, id)).Images.Where(i => i.Kind != "Thumbnail").Select(i => i.Id);
+        Assert.Equal(new[] { process.Id, render.Id }, order);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.DeleteAsync($"/api/admin/images/{process.Id}")).StatusCode);
+        Assert.Equal(2, (await DetailAsync(owner, id)).Images.Count);
+        Assert.Equal(HttpStatusCode.NotFound, (await owner.GetAsync(process.Url)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Bad_images_are_refused()
+    {
+        var owner = await factory.CreateOwnerClientAsync();
+        var id = await CreateModelAsync(owner);
+        Assert.Equal(HttpStatusCode.BadRequest, (await UploadAsync(owner, id, "Render", "%PDF-1.4 nope"u8.ToArray())).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await UploadAsync(owner, id, "Banner", Png)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await UploadAsync(factory.CreateClient(), id, "Render", Png)).StatusCode);
+    }
+}

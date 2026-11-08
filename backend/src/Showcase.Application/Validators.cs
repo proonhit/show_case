@@ -85,3 +85,31 @@ public class ProfileValidator : AbstractValidator<ProfileDto>
         (Uri.TryCreate(value, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttps || u.Scheme == Uri.UriSchemeHttp))
         || System.Net.Mail.MailAddress.TryCreate(value, out _);
 }
+
+public class ViewerSettingsValidator : AbstractValidator<ViewerSettingsDto>
+{
+    public static readonly string[] Modes = ["final", "wireframe", "baseColor", "metallic", "roughness", "normal", "ao"];
+
+    public ViewerSettingsValidator()
+    {
+        RuleFor(x => x.AutoRotateSpeed).InclusiveBetween(0, 120);
+        RuleFor(x => x.Background).Matches("^#[0-9a-fA-F]{6}$").When(x => x.Background is not null)
+            .WithMessage("Background must be a colour like #1A1C21.");
+        RuleFor(x => x.DefaultMode).Must(m => Modes.Contains(m)).WithMessage("Unknown map mode.");
+        RuleFor(x => x).Must(x => (x.CameraPosition is null) == (x.CameraTarget is null))
+            .WithMessage("Camera position and target are set together.");
+        RuleFor(x => x.CameraPosition).Must(BeVector).When(x => x.CameraPosition is not null).WithMessage("Camera position needs 3 finite numbers.");
+        RuleFor(x => x.CameraTarget).Must(BeVector).When(x => x.CameraTarget is not null).WithMessage("Camera target needs 3 finite numbers.");
+    }
+
+    private static bool BeVector(double[]? v) => v is { Length: 3 } && v.All(double.IsFinite);
+}
+
+public class UpdateImageValidator : AbstractValidator<UpdateImageRequest>
+{
+    public UpdateImageValidator()
+    {
+        RuleFor(x => x.CaptionEn).MaximumLength(200);
+        RuleFor(x => x.CaptionVi).MaximumLength(200);
+    }
+}

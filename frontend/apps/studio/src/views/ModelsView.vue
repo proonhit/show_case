@@ -104,6 +104,7 @@ function nudge(m: ModelSummaryDto, delta: number) {
         <thead>
           <tr>
             <th class="grip-col"><span class="sr-only">Sắp xếp</span></th>
+            <th class="thumb-col"><span class="sr-only">Ảnh</span></th>
             <th>Tên (EN / VI)</th>
             <th>Danh mục</th>
             <th>Trạng thái</th>
@@ -114,8 +115,8 @@ function nudge(m: ModelSummaryDto, delta: number) {
           </tr>
         </thead>
         <tbody>
-          <tr v-if="models.isLoading.value"><td colspan="8" class="muted">Đang tải…</td></tr>
-          <tr v-else-if="!rows.length"><td colspan="8" class="muted">Không có model nào ở mục này.</td></tr>
+          <tr v-if="models.isLoading.value"><td colspan="9" class="muted">Đang tải…</td></tr>
+          <tr v-else-if="!rows.length"><td colspan="9" class="muted">Không có model nào ở mục này.</td></tr>
           <tr v-for="m in rows" :key="m.id" :draggable="canDrag" :class="{ dragging: dragging === m.id }"
             @dragstart="dragging = m.id" @dragend="dragging = null" @dragover.prevent @drop.prevent="onDrop(m.id)">
             <td class="grip-col">
@@ -124,6 +125,9 @@ function nudge(m: ModelSummaryDto, delta: number) {
                 <button type="button" @click="nudge(m, -1)">Lên trên</button>
                 <button type="button" @click="nudge(m, 1)">Xuống dưới</button>
               </span>
+            </td>
+            <td class="thumb-col">
+              <span class="thumb"><img v-if="m.thumbnailUrl" :src="m.thumbnailUrl" alt="" loading="lazy" /><AppIcon v-else name="box" :size="18" /></span>
             </td>
             <td>
               <RouterLink :to="`/models/${m.id}`" class="title">{{ titleOf(m) }}</RouterLink>
@@ -175,6 +179,9 @@ th { text-align: left; padding: 10px 8px; font-size: 11px; font-weight: 500; let
 td { padding: 9px 8px; border-top: 1px solid var(--border); vertical-align: middle; }
 tr.dragging { opacity: .4; }
 .grip-col { width: 32px; }
+.thumb-col { width: 60px; }
+.thumb { width: 44px; height: 44px; border-radius: 8px; overflow: hidden; background: var(--viewport); display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
 .grip { color: var(--muted); cursor: grab; display: inline-flex; }
 .title { display: block; color: var(--text); font-weight: 500; text-decoration: none; }
 .title:hover { color: var(--accent); }

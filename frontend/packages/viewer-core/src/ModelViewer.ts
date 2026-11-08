@@ -43,6 +43,14 @@ export interface ViewerOptions {
   maxPolarAngle?: number;
   /** Play the first animation clip when the model has one. Default true. */
   playAnimation?: boolean;
+  /** A saved view to open with instead of automatic framing. */
+  camera?: CameraView | null;
+}
+
+/** Camera position and the point it looks at, in model units. */
+export interface CameraView {
+  position: [number, number, number];
+  target: [number, number, number];
 }
 
 export interface ViewerProgress {
@@ -92,12 +100,14 @@ export class ModelViewer {
   private modes?: MaterialModes;
   private mixer?: AnimationMixer;
   private home?: { position: Vector3; target: Vector3 };
+  private autoHome?: { position: Vector3; target: Vector3 };
   private loadToken = 0;
   private visible = true;
   private disposed = false;
 
   constructor(private readonly container: HTMLElement, private readonly options: ViewerOptions = {}) {
-    this.renderer = new WebGLRenderer({ antialias: true, alpha: options.background === null });
+    // Always alpha, so the background can switch to transparent later (setBackground(null)).
+    this.renderer = new WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.setPixelRatio(pixelRatio(options.maxPixelRatio));
@@ -238,6 +248,42 @@ export class ModelViewer {
     this.controls.update();
   }
 
+  /** Where the camera is now — to save as the model's opening view. */
+  getCamera(): CameraView {
+    const p = this.camera.position;
+    const t = this.controls.target;
+    const r = (n: number) => Math.round(n * 10000) / 10000;
+    return { position: [r(p.x), r(p.y), r(p.z)], target: [r(t.x), r(t.y), r(t.z)] };
+  }
+
+  /** Sets the opening view (null = automatic framing) and moves the camera there. */
+  setCamera(view: CameraView | null): void {
+    this.options.camera = view;
+    if (view) this.home = { position: new Vector3(...view.position), target: new Vector3(...view.target) };
+    else if (this.autoHome) this.home = { position: this.autoHome.position.clone(), target: this.autoHome.target.clone() };
+    this.resetCamera();
+  }
+
+  /** CSS colour, or null for a transparent canvas background. */
+  setBackground(color: string | null): void {
+    this.scene.background = color === null ? null : new Color(color);
+  }
+
+  /** Degrees per second while the turntable runs. */
+  setAutoRotateSpeed(degreesPerSecond: number): void {
+    this.controls.autoRotateSpeed = (degreesPerSecond / 12) * 2;
+  }
+
+  /**
+   * The current view as an image (for a thumbnail). Renders a frame and reads it straight away,
+   * so it works without preserveDrawingBuffer.
+   */
+  async snapshot(type: 'image/webp' | 'image/png' | 'image/jpeg' = 'image/webp', quality = 0.9): Promise<Blob> {
+    this.renderer.render(this.scene, this.camera);
+    const url = this.canvas.toDataURL(type, quality);
+    return (await fetch(url)).blob();
+  }
+
   /** Fullscreen on the container (so overlays such as the mode bar stay visible). */
   async toggleFullscreen(): Promise<void> {
     if (document.fullscreenElement) await document.exitFullscreen();
@@ -255,7 +301,11 @@ export class ModelViewer {
     const distance = Math.max(fitHeight, fitWidth) * 1.05;
 
     const direction = new Vector3(0.6, 0.35, 1).normalize();
-    this.home = { position: sphere.center.clone().addScaledVector(direction, distance), target: sphere.center.clone() };
+    this.autoHome = { position: sphere.center.clone().addScaledVector(direction, distance), target: sphere.center.clone() };
+    const saved = this.options.camera;
+    this.home = saved
+      ? { position: new Vector3(...saved.position), target: new Vector3(...saved.target) }
+      : { position: this.autoHome.position.clone(), target: this.autoHome.target.clone() };
     this.camera.near = distance / 100;
     this.camera.far = distance * 100;
     this.camera.updateProjectionMatrix();

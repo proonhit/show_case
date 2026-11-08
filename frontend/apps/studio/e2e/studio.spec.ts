@@ -61,6 +61,27 @@ test('log in → create model → upload .glb → preview map modes → publish'
   await expect(modes.getByRole('button', { name: 'Khung lưới' })).toHaveAttribute('aria-pressed', 'true');
   await page.screenshot({ path: `${shots}/05-edit-wireframe.png` });
 
+  // Thumbnail straight from the viewer, an opening view and viewer settings, then an extra image.
+  await page.getByRole('button', { name: 'Chụp thumbnail' }).click();
+  await expect(page.getByText('Đã lưu thumbnail từ khung xem.')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Thumbnail hiện tại' })).toBeVisible();
+  await page.getByRole('button', { name: 'Dùng góc này' }).click();
+  await expect(page.getByText('Góc nhìn mở đầu: đã chọn')).toBeVisible();
+  await page.getByLabel('Chế độ map mặc định').selectOption('wireframe');
+  await page.getByRole('button', { name: 'Xám' }).click();
+  await page.getByRole('button', { name: 'Lưu cài đặt' }).click();
+  await expect(page.getByRole('button', { name: 'Đã lưu' }).last()).toBeVisible();
+  await page.getByLabel('Loại ảnh').selectOption('Render');
+  await page.locator('input[type=file][multiple]').setInputFiles({ name: 'render.png', mimeType: 'image/png', buffer: PNG_1PX });
+  await page.getByLabel('Chú thích tiếng Việt ảnh 1').fill('Ảnh render');
+  await page.getByLabel('Chú thích tiếng Việt ảnh 1').press('Tab');
+  await expect(page.getByRole('img', { name: 'Ảnh render' })).toBeVisible();
+  await page.screenshot({ path: `${shots}/05b-viewer-settings-images.png`, fullPage: true });
+
+  // The saved default mode is what the preview opens with.
+  await page.reload();
+  await expect(modes.getByRole('button', { name: 'Khung lưới' })).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 });
+
   // Publish → visible on the public API.
   await page.getByRole('button', { name: 'Publish' }).click();
   await expect(page.getByText('Published').first()).toBeVisible();

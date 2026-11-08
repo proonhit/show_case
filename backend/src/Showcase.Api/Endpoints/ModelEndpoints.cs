@@ -88,7 +88,7 @@ public static class ModelEndpoints
     }
 
     internal static IQueryable<Model> WithDetails(IQueryable<Model> q) =>
-        q.Include(m => m.Translations).Include(m => m.Category).Include(m => m.Stats).Include(m => m.Tags);
+        q.Include(m => m.Translations).Include(m => m.Category).Include(m => m.Stats).Include(m => m.Tags).Include(m => m.Images);
 
     /// <summary>Slug must be free (deleted models keep theirs); category and tags must exist.</summary>
     private static async Task<IResult?> CheckReferencesAsync(AppDbContext db, UpsertModelRequest req, Guid? selfId, CancellationToken ct)
@@ -142,9 +142,10 @@ public static class ModelEndpoints
         Translations(m),
         m.Stats?.Triangles,
         m.Tags.Select(t => t.Slug).Order().ToList(),
-        m.UpdatedAt);
+        m.UpdatedAt,
+        m.Images.FirstOrDefault(i => i.Kind == ImageKind.Thumbnail) is { } thumb ? ImageEndpoints.UrlOf(thumb) : null);
 
-    private static ModelDetailDto ToDetail(Model m) => new(
+    internal static ModelDetailDto ToDetail(Model m) => new(
         m.Id,
         m.Slug,
         m.Status.ToString(),
@@ -156,7 +157,9 @@ public static class ModelEndpoints
         m.CompletedAt,
         Translations(m),
         m.Tags.Select(t => t.Id).ToList(),
-        m.UpdatedAt);
+        m.UpdatedAt,
+        ImageEndpoints.ReadSettings(m.ViewerSettings),
+        m.Images.OrderBy(i => i.Kind == ImageKind.Thumbnail ? 0 : 1).ThenBy(i => i.SortOrder).Select(ImageEndpoints.ToDto).ToList());
 
     private static List<TranslationDto> Translations(Model m) =>
         m.Translations.OrderBy(t => t.Locale).Select(t => new TranslationDto(t.Locale, t.Title, t.Description)).ToList();
