@@ -4,7 +4,7 @@ pnpm workspace (Node 22, pnpm 10).
 
 ```
 packages/viewer-core   Three.js viewer, framework-free TypeScript (GĐ3)
-packages/api-client    generated from the API's OpenAPI document (GĐ4)
+packages/api-client    typed client (openapi-fetch) generated from the API's OpenAPI document (GĐ4)
 apps/studio            Vue 3 admin (GĐ4)
 apps/showcase          Nuxt static site, EN/VI (GĐ5)
 ```
@@ -13,9 +13,13 @@ apps/showcase          Nuxt static site, EN/VI (GĐ5)
 cd frontend
 pnpm install
 pnpm viewer:dev      # demo page at http://localhost:5173 — drop a .glb, keys 1–7 switch map mode
+pnpm --filter @showcase/studio dev   # Studio at http://localhost:5174, /api proxied to the API on :5080
 pnpm test            # Vitest
 pnpm build
 ```
+
+`packages/api-client/openapi/Showcase.Api.json` and `src/schema.d.ts` are regenerated from the backend by the
+*API contract* workflow whenever `backend/src` changes on a branch — never edit them by hand.
 
 `pnpm-lock.yaml` is kept up to date by the *Frontend lockfile* workflow when a `package.json` changes on a branch.
 

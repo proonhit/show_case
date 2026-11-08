@@ -29,7 +29,8 @@ public record ModelSummaryDto(
     string? CategorySlug,
     IReadOnlyList<TranslationDto> Translations,
     int? Triangles,
-    IReadOnlyList<string> TagSlugs);
+    IReadOnlyList<string> TagSlugs,
+    DateTimeOffset UpdatedAt);
 
 /// <summary>Everything the Studio edit form needs.</summary>
 public record ModelDetailDto(

@@ -30,6 +30,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddValidatorsFromAssemblyContaining<UpsertCategoryValidator>();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+// Numbers are numbers: keeps the OpenAPI schema (and the generated TypeScript) free of "number | string".
+builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict);
 
 var production = builder.Environment.IsProduction();
 builder.Services

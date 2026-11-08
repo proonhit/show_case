@@ -141,7 +141,8 @@ public static class ModelEndpoints
         m.Category?.Slug,
         Translations(m),
         m.Stats?.Triangles,
-        m.Tags.Select(t => t.Slug).Order().ToList());
+        m.Tags.Select(t => t.Slug).Order().ToList(),
+        m.UpdatedAt);
 
     private static ModelDetailDto ToDetail(Model m) => new(
         m.Id,
