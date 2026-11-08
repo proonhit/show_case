@@ -911,7 +911,7 @@ export interface components {
             nameVi: string;
             slug: string;
             /** Format: int32 */
-            sortOrder: number | string;
+            sortOrder: number;
         };
         LoginRequest: {
             password: string;
@@ -926,12 +926,12 @@ export interface components {
             status: string;
             isFeatured: boolean;
             /** Format: int32 */
-            sortOrder: number | string;
+            sortOrder: number;
             /** Format: uuid */
             categoryId: null | string;
             software: null | string;
             /** Format: int32 */
-            hoursSpent: null | number | string;
+            hoursSpent: null | number;
             /** Format: date */
             completedAt: null | string;
             translations: components["schemas"]["TranslationDto"][];
@@ -945,9 +945,9 @@ export interface components {
             kind: string;
             format: string;
             /** Format: int64 */
-            sizeBytes: number | string;
+            sizeBytes: number;
             /** Format: int32 */
-            version: number | string;
+            version: number;
             isCurrent: boolean;
             /** Format: date-time */
             uploadedAt: string;
@@ -959,12 +959,14 @@ export interface components {
             status: string;
             isFeatured: boolean;
             /** Format: int32 */
-            sortOrder: number | string;
+            sortOrder: number;
             categorySlug: null | string;
             translations: components["schemas"]["TranslationDto"][];
             /** Format: int32 */
-            triangles: null | number | string;
+            triangles: null | number;
             tagSlugs: string[];
+            /** Format: date-time */
+            updatedAt: string;
         };
         ProfileDto: {
             displayName: string;
@@ -981,15 +983,15 @@ export interface components {
         };
         StudioStatsDto: {
             /** Format: int32 */
-            total: number | string;
+            total: number;
             /** Format: int32 */
-            published: number | string;
+            published: number;
             /** Format: int32 */
-            draft: number | string;
+            draft: number;
             /** Format: int32 */
-            archived: number | string;
+            archived: number;
             /** Format: int64 */
-            storageBytes: number | string;
+            storageBytes: number;
         };
         TagDto: {
             /** Format: uuid */
@@ -1012,7 +1014,7 @@ export interface components {
             nameVi: string;
             slug: string;
             /** Format: int32 */
-            sortOrder: number | string;
+            sortOrder: number;
         };
         UpsertModelRequest: {
             slug: string;
@@ -1020,7 +1022,7 @@ export interface components {
             categoryId: null | string;
             software: null | string;
             /** Format: int32 */
-            hoursSpent: null | number | string;
+            hoursSpent: null | number;
             /** Format: date */
             completedAt: null | string;
             translations: components["schemas"]["TranslationDto"][];
