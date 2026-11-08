@@ -6,6 +6,8 @@ public enum FileKind { Original, Optimized, Mobile }
 
 public enum ImageKind { Thumbnail, Render, Wireframe, Process }
 
+public enum JobStatus { Queued, Running, Succeeded, Failed }
+
 /// <summary>A 3D model shown in the portfolio. Text lives in <see cref="Translations"/> (en / vi).</summary>
 public class Model
 {
@@ -80,6 +82,10 @@ public class ModelImage
     public Guid ModelId { get; set; }
     public ImageKind Kind { get; set; }
     public required string StorageKey { get; set; }
+
+    /// <summary>Small WebP copy (about 640 px wide) for grids and cards.</summary>
+    public string? SmallStorageKey { get; set; }
+
     public string? CaptionEn { get; set; }
     public string? CaptionVi { get; set; }
     public int SortOrder { get; set; }
@@ -117,4 +123,21 @@ public class SiteProfile
 
     /// <summary>JSON object: {"linkedin":"…","email":"…"}.</summary>
     public string Links { get; set; } = "{}";
+}
+
+/// <summary>
+/// One run of the processing pipeline for an uploaded file. <see cref="Steps"/> is a JSON array of
+/// {name, status, durationMs, message} so the Studio can show each step as it happens.
+/// </summary>
+public class ProcessingJob
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ModelId { get; set; }
+    public Guid ModelFileId { get; set; }
+    public JobStatus Status { get; set; } = JobStatus.Queued;
+    public string Steps { get; set; } = "[]";
+    public string? Error { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? StartedAt { get; set; }
+    public DateTimeOffset? FinishedAt { get; set; }
 }

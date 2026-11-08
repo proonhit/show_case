@@ -5,8 +5,36 @@ public record ModelFileDto(Guid Id, string Kind, string Format, long SizeBytes, 
 /// <summary>Background work run by the Worker (Hangfire) after a model file is uploaded.</summary>
 public interface IModelFileProcessor
 {
-    /// <summary>Convert (.fbx → .glb), optimize and read stats. Filled in during GĐ2.</summary>
-    Task ProcessAsync(Guid modelFileId, CancellationToken ct);
+    /// <summary>
+    /// Runs one <c>ProcessingJob</c>: convert (.fbx → .glb), read stats, optimize (+ a phone version).
+    /// Failures are recorded on the job (with the step and a readable message), never retried:
+    /// a broken file stays broken (the Worker turns Hangfire retries off).
+    /// </summary>
+    Task ProcessAsync(Guid jobId, CancellationToken ct);
+}
+
+public record JobStepDto(string Name, string Status, long? DurationMs = null, string? Message = null);
+
+public record ProcessingJobDto(
+    Guid Id,
+    Guid ModelId,
+    Guid ModelFileId,
+    string Status,
+    IReadOnlyList<JobStepDto> Steps,
+    string? Error,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? FinishedAt);
+
+public static class PipelineSteps
+{
+    public const string Upload = "upload";
+    public const string Convert = "convert";
+    public const string Stats = "stats";
+    public const string Optimize = "optimize";
+    public static readonly string[] All = [Upload, Convert, Stats, Optimize];
+
+    /// <summary>Above this many triangles a lighter copy is made for phones.</summary>
+    public const int MobileTriangleThreshold = 150_000;
 }
 
 public static class UploadRules
