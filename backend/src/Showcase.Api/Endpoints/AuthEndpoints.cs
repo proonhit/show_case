@@ -35,7 +35,7 @@ public static class AuthEndpoints
         .AllowAnonymous()
         .RequireRateLimiting(AuthOptions.LoginRateLimitPolicy);
 
-        auth.MapGet("/me", () => Results.Ok(new { user = "owner" })).RequireAuthorization();
+        auth.MapGet("/me", () => new MeDto("owner")).RequireAuthorization();
 
         auth.MapPost("/logout", async (HttpContext http) =>
         {

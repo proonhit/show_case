@@ -24,7 +24,7 @@ public static class ModelEndpoints
         {
             var m = await WithDetails(db.Models.AsNoTracking()).FirstOrDefaultAsync(x => x.Id == id, ct);
             return m is null ? Results.NotFound() : Results.Ok(ToDetail(m));
-        });
+        }).Produces<ModelDetailDto>();
 
         g.MapPost("/", async (UpsertModelRequest req, IValidator<UpsertModelRequest> v, AppDbContext db, CancellationToken ct) =>
         {
@@ -38,7 +38,7 @@ public static class ModelEndpoints
             await db.SaveChangesAsync(ct);
             await db.Entry(model).Reference(m => m.Category).LoadAsync(ct);
             return Results.Created($"/api/admin/models/{model.Id}", ToSummary(model));
-        });
+        }).Produces<ModelSummaryDto>(StatusCodes.Status201Created);
 
         g.MapPut("/{id:guid}", async (Guid id, UpsertModelRequest req, IValidator<UpsertModelRequest> v, AppDbContext db, CancellationToken ct) =>
         {
@@ -51,6 +51,17 @@ public static class ModelEndpoints
             m.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
             return Results.Ok(ToDetail(m));
+        }).Produces<ModelDetailDto>();
+
+        // Drag-and-drop order on the Studio list: ids in display order; models not listed keep their place after them.
+        g.MapPut("/order", async (ReorderModelsRequest req, AppDbContext db, CancellationToken ct) =>
+        {
+            var models = await db.Models.OrderBy(m => m.SortOrder).ToListAsync(ct);
+            var position = req.Ids.Distinct().Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
+            var ordered = models.OrderBy(m => position.TryGetValue(m.Id, out var i) ? i : int.MaxValue).ThenBy(m => m.SortOrder).ToList();
+            for (var i = 0; i < ordered.Count; i++) ordered[i].SortOrder = i;
+            await db.SaveChangesAsync(ct);
+            return Results.NoContent();
         });
 
         g.MapPatch("/{id:guid}/status", async (Guid id, UpdateModelStatusRequest req, IValidator<UpdateModelStatusRequest> v, AppDbContext db, CancellationToken ct) =>
@@ -130,7 +141,8 @@ public static class ModelEndpoints
         m.Category?.Slug,
         Translations(m),
         m.Stats?.Triangles,
-        m.Tags.Select(t => t.Slug).Order().ToList());
+        m.Tags.Select(t => t.Slug).Order().ToList(),
+        m.UpdatedAt);
 
     private static ModelDetailDto ToDetail(Model m) => new(
         m.Id,
@@ -148,4 +160,18 @@ public static class ModelEndpoints
 
     private static List<TranslationDto> Translations(Model m) =>
         m.Translations.OrderBy(t => t.Locale).Select(t => new TranslationDto(t.Locale, t.Title, t.Description)).ToList();
+}
+
+public static class StatsEndpoints
+{
+    public static void MapStatsEndpoints(this IEndpointRouteBuilder app) =>
+        app.MapGet("/api/admin/stats", async (AppDbContext db, CancellationToken ct) =>
+        {
+            var byStatus = await db.Models.GroupBy(m => m.Status).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
+            int Count(ModelStatus s) => byStatus.FirstOrDefault(x => x.Key == s)?.Count ?? 0;
+            var bytes = await db.ModelFiles.SumAsync(f => (long?)f.SizeBytes, ct) ?? 0;
+            return new StudioStatsDto(byStatus.Sum(x => x.Count), Count(ModelStatus.Published), Count(ModelStatus.Draft), Count(ModelStatus.Archived), bytes);
+        })
+        .WithTags("Admin · Models")
+        .RequireAuthorization();
 }

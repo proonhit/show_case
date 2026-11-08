@@ -30,6 +30,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddValidatorsFromAssemblyContaining<UpsertCategoryValidator>();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+// Numbers are numbers: keeps the OpenAPI schema (and the generated TypeScript) free of "number | string".
+builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict);
 
 var production = builder.Environment.IsProduction();
 builder.Services
@@ -77,7 +79,9 @@ builder.Services.AddRateLimiter(o =>
 var app = builder.Build();
 
 // Apply EF migrations on start (dev, tests, and the single-server production deploy).
-if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
+// Skipped while the build tool loads the app only to write the OpenAPI document.
+var generatingOpenApi = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+if (app.Configuration.GetValue<bool>("Database:AutoMigrate") && !generatingOpenApi)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -97,6 +101,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapAuthEndpoints();
 app.MapCategoryEndpoints();
 app.MapModelEndpoints();
+app.MapStatsEndpoints();
 app.MapTagEndpoints();
 app.MapProfileEndpoints();
 app.MapPublicEndpoints();
