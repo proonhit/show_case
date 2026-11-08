@@ -63,3 +63,22 @@ test('phone width: no sideways scrolling', async ({ page }) => {
   await expect(page.getByRole('group', { name: 'Map mode' }).getByRole('button', { name: /Final/ })).toBeEnabled({ timeout: 30_000 });
   await page.screenshot({ path: `${shots}/s04-detail-phone.png` });
 });
+
+test('SEO: canonical, hreflang, Open Graph, JSON-LD, sitemap and robots', async ({ page, request }) => {
+  await page.goto(`/vi/models/${first.slug}`);
+  const head = page.locator('head');
+  await expect(head.locator('link[rel="canonical"]')).toHaveAttribute('href', new RegExp(`/vi/models/${first.slug}$`));
+  await expect(head.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute('href', new RegExp(`/en/models/${first.slug}$`));
+  await expect(head.locator('link[rel="alternate"][hreflang="x-default"]')).toHaveCount(1);
+  await expect(head.locator('meta[property="og:title"]')).toHaveAttribute('content', new RegExp(titleOf(first, 'vi')));
+  await expect(head.locator('meta[property="og:locale"]')).toHaveAttribute('content', 'vi_VN');
+  if (first.thumbnailUrl) await expect(head.locator('meta[property="og:image"]')).toHaveAttribute('content', /^https?:\/\/.+\/media\//);
+  const ld = JSON.parse((await head.locator('script[type="application/ld+json"]').first().textContent()) ?? '{}');
+  expect(ld['@type']).toBe('3DModel');
+  expect(ld.name).toBe(titleOf(first, 'vi'));
+
+  const sitemap = await (await request.get('/sitemap.xml')).text();
+  expect(sitemap).toContain(`/en/models/${first.slug}</loc>`);
+  expect(sitemap).toContain(`/vi/models/${first.slug}</loc>`);
+  expect(await (await request.get('/robots.txt')).text()).toContain('Sitemap:');
+});

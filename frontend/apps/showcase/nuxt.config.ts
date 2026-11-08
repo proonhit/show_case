@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 // (written by scripts/fetch-data.mjs from the API, or from sample/ when no API is given).
 const site = JSON.parse(readFileSync(new URL('./data/site.json', import.meta.url), 'utf8')) as { models: { slug: string }[] };
 const modelRoutes = site.models.flatMap((m) => [`/en/models/${m.slug}`, `/vi/models/${m.slug}`]);
+// Public address of the deployed site, for canonical/hreflang/Open Graph/sitemap (set in the build job).
+const siteUrl = (process.env.SITE_URL ?? 'http://localhost:5175').replace(/\/$/, '');
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
@@ -38,5 +40,6 @@ export default defineNuxtConfig({
   nitro: {
     prerender: { crawlLinks: true, routes: ['/en', '/vi', '/en/about', '/vi/about', ...modelRoutes], failOnError: true },
   },
+  runtimeConfig: { public: { siteUrl } },
   typescript: { strict: true },
 });
