@@ -8,8 +8,8 @@ function scene() {
   const textured = new MeshStandardMaterial({ map: tex(), roughnessMap: tex(), metalnessMap: tex(), normalMap: tex() });
   const plain = new MeshStandardMaterial({ color: 0xff0000, roughness: 0.3, metalness: 1 });
   const root = new Group();
-  const a = new Mesh(new BoxGeometry(), textured);
-  const b = new Mesh(new BoxGeometry(), [plain, textured]);
+  const a: Mesh = new Mesh(new BoxGeometry(), textured);
+  const b: Mesh = new Mesh(new BoxGeometry(), [plain, textured]);
   root.add(a, b);
   return { root, a, b, textured, plain };
 }
