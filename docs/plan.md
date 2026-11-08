@@ -29,7 +29,7 @@ Done when the sample `.fbx` converts with textures intact, the viewer shows the 
 ## GĐ1 checklist
 
 - [x] .NET solution: Api, Application, Domain, Infrastructure, Worker + tests — done 08/11 (PR #2, Worker in PR #3)
-- [ ] `deploy/docker-compose.dev.yml` with PostgreSQL + nginx — PostgreSQL done (PR #2); nginx moved to GĐ6 (production compose), not needed for local dev
+- [x] `deploy/docker-compose.dev.yml` with PostgreSQL + API + Worker — done 08/11 (PR #6); nginx moved to GĐ6 (production compose)
 - [x] Entities + EF Core migration + seed — done 08/11 (entities PR #2, `InitialCreate` applied on start PR #3, starter categories + profile seeded PR #4)
 - [x] Single-password login: cookie auth, rate limit, `/api/auth/login|me|logout` — done 08/11 (PR #2)
 - [x] `IFileStorage` + `LocalFileStorage` — done 08/11 (PR #2)
@@ -39,5 +39,7 @@ Done when the sample `.fbx` converts with textures intact, the viewer shows the 
 - [x] Hangfire on PostgreSQL + Worker running a sample job (hourly heartbeat, processing stub) — done 08/11 (PR #3)
 - [x] OpenAPI, Serilog, `/health` — done 08/11 (PR #2)
 - [x] Tests (xUnit + Testcontainers) + GitHub Actions build/test — done 08/11 (PR #2, CI green; upload tests in PR #3; 26/26 pass after PR #4)
+
+GĐ1 done criteria met 08/11 (PR #6): the `docker-smoke` CI job starts the stack, logs in, creates a model, uploads 100 MB with tus and sees the Worker receive it. Tag `v0.1` after merge.
 
 The detailed task list for every phase lives in the shared plan document.
