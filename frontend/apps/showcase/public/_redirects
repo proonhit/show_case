@@ -1,0 +1,2 @@
+# Cloudflare Pages: server-side redirect for the bare domain (public/index.html is the fallback).
+/  /en  302

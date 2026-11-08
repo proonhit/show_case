@@ -35,9 +35,8 @@ export default defineNuxtConfig({
     detectBrowserLanguage: false,
     bundle: { optimizeTranslationDirective: false },
   },
-  routeRules: { '/': { redirect: '/en' } },
   nitro: {
-    prerender: { crawlLinks: true, routes: ['/', '/en', '/vi', '/en/about', '/vi/about', ...modelRoutes], failOnError: true },
+    prerender: { crawlLinks: true, routes: ['/en', '/vi', '/en/about', '/vi/about', ...modelRoutes], failOnError: true },
   },
   typescript: { strict: true },
 });
