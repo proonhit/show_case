@@ -1,0 +1,47 @@
+name: Frontend lockfile
+
+# Keeps frontend/pnpm-lock.yaml in sync without installing packages locally:
+# when a package.json changes on a branch, this resolves the lockfile and pushes it back.
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - frontend/package.json
+      - frontend/pnpm-workspace.yaml
+      - frontend/packages/*/package.json
+      - frontend/apps/*/package.json
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve lockfile
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml && git ls-files --error-unmatch pnpm-lock.yaml >/dev/null 2>&1; then
+            echo "Lockfile already up to date"; exit 0
+          fi
+          git add pnpm-lock.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(frontend): update pnpm-lock.yaml"
+          git push
