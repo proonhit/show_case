@@ -122,9 +122,21 @@ jobs:
         working-directory: frontend
         env:
           API_URL: http://localhost:5080
+          SITE_URL: https://showcase.example
         run: |
           pnpm --filter @showcase/showcase build
           pnpm --filter @showcase/showcase e2e
+
+      # Mobile Lighthouse on the generated pages (scores in the job summary). Bar: performance ≥ 85.
+      - name: Lighthouse (mobile)
+        working-directory: frontend/apps/showcase
+        env:
+          LH_ENFORCE: '1'
+        run: |
+          export CHROME_PATH=$(cd ../studio && node -e "console.log(require('@playwright/test').chromium.executablePath())")
+          node scripts/serve.mjs & sleep 1
+          slug=$(node -e "const s=require('./data/site.json'); console.log((s.models.find(m=>m.modelUrl)||s.models[0]).slug)")
+          node scripts/lighthouse.mjs http://localhost:5175/en "http://localhost:5175/en/models/$slug#report" http://localhost:5175/vi/about
 
       - name: Upload screenshots and report
         if: always()

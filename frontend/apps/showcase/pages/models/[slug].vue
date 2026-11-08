@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ModelInfo } from '@showcase/viewer-core';
-import { categoryOf, formatBytes, formatTris, site, tagsOf, termName, text } from '~/composables/site';
+import { categoryOf, formatBytes, site, tagsOf, termName, text } from '~/composables/site';
 
 const route = useRoute();
 const { t, locale } = useI18n();
@@ -50,10 +50,23 @@ async function copyLink() {
   }
 }
 
-useSeoMeta({
+usePageSeo({
   title: () => `${info.value.title} — ${site.profile.displayName}`,
-  description: () => info.value.description ?? `${info.value.title} · ${formatTris(model.stats?.triangles)} tris`,
-  ogImage: model.thumbnailUrl ?? undefined,
+  description: () => (info.value.description ?? `${info.value.title} · ${meta.value}`).slice(0, 200),
+  image: model.thumbnailUrl,
+  type: 'article',
+  // schema.org 3DModel: search engines can show the model as a 3D asset.
+  jsonLd: (absoluteUrl) => ({
+    '@type': '3DModel',
+    name: info.value.title,
+    description: info.value.description ?? undefined,
+    inLanguage: locale.value,
+    image: absoluteUrl(model.thumbnailUrl),
+    creator: { '@type': 'Person', name: site.profile.displayName },
+    dateCreated: model.completedAt ?? undefined,
+    keywords: tagsOf(model).map((tg) => termName(tg, locale.value)).join(', ') || undefined,
+    encoding: model.modelUrl ? [{ '@type': 'MediaObject', contentUrl: absoluteUrl(model.modelUrl), encodingFormat: 'model/gltf-binary' }] : undefined,
+  }),
 });
 </script>
 

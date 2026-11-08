@@ -74,9 +74,9 @@ GĐ4 done 08/11 (PRs #8–#12) apart from the upload job steps, which appear wit
 - [x] Home: hero + featured model, card grid, category/tag filter on the client — done 08/11 (PR #13)
 - [x] Detail: viewer + 7 map modes, specs, extra images, previous/next; phone layout with a scrolling mode bar — done 08/11 (PR #13)
 - [x] About page (3D only), CV download — done 08/11 (PR #13)
-- [ ] SEO: title/description done (PR #13); Open Graph image, `hreflang`, `sitemap.xml`, `robots.txt` pending
+- [x] SEO: title/description, canonical, Open Graph image, `hreflang`, JSON-LD (3DModel, Person), `sitemap.xml`, `robots.txt` — done 08/11 (PR #13–#14)
 - [x] Build step: fetch `/api/public/*`, copy .glb + images into `public/`, `nuxt generate` — done 08/11 (PR #13, `scripts/fetch-data.mjs`)
 - [ ] `BuildShowcase` job in the worker + Cloudflare Pages deploy (Wrangler); auto after Publish, "Build lại ngay" button
-- [ ] Lighthouse mobile ≥ 85
+- [x] Lighthouse mobile ≥ 85 — done 08/11 (PR #14): home 96, About 97 (enforced in CI); 3D detail 80 in CI with software WebGL (reported, not enforced). Fixes: self-hosted fonts, three.js loaded when idle, render on demand
 
 The detailed task list for every phase lives in the shared plan document.

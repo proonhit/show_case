@@ -4,3 +4,5 @@ data/site.json
 public/media/
 test-results/
 playwright-report/
+public/sitemap.xml
+public/robots.txt

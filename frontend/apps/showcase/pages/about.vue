@@ -11,7 +11,19 @@ const links = computed(() => Object.entries(p.links).map(([name, value]) => ({
   label: value.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''),
 })));
 
-useSeoMeta({ title: () => `${t('about.title')} — ${p.displayName}`, description: () => headline.value ?? '' });
+usePageSeo({
+  title: () => `${t('about.title')} — ${p.displayName}`,
+  description: () => headline.value ?? bio.value?.slice(0, 160) ?? p.displayName,
+  image: p.avatarUrl,
+  type: 'profile',
+  jsonLd: (absoluteUrl) => ({
+    '@type': 'Person',
+    name: p.displayName,
+    jobTitle: headline.value ?? undefined,
+    image: absoluteUrl(p.avatarUrl),
+    sameAs: Object.values(p.links).filter((v) => v.startsWith('http')),
+  }),
+});
 </script>
 
 <template>

@@ -15,9 +15,16 @@ const shown = computed(() => site.models.filter((m) =>
   (!category.value || m.categorySlug === category.value) && (!tag.value || m.tagSlugs.includes(tag.value))));
 
 const headline = computed(() => (locale.value === 'vi' ? site.profile.headlineVi : site.profile.headlineEn));
-useSeoMeta({
+usePageSeo({
   title: () => `${site.profile.displayName} — ${t('home.works')}`,
   description: () => headline.value ?? t('home.lead'),
+  image: featured.value?.thumbnailUrl,
+  jsonLd: () => ({
+    '@type': 'CollectionPage',
+    name: `${site.profile.displayName} — ${t('home.works')}`,
+    inLanguage: locale.value,
+    author: { '@type': 'Person', name: site.profile.displayName },
+  }),
 });
 </script>
 
