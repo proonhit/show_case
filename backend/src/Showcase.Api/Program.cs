@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -56,6 +57,10 @@ builder.Services
         };
     });
 builder.Services.AddAuthorization();
+
+// Keys that sign the session cookie. In containers they live on a volume so a restart keeps people logged in.
+if (builder.Configuration["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
+    builder.Services.AddDataProtection().SetApplicationName("showcase").PersistKeysToFileSystem(new DirectoryInfo(keysPath));
 
 builder.Services.AddRateLimiter(o =>
 {

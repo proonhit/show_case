@@ -1,6 +1,9 @@
-# Local development services. Usage (from the repo root):
-#   cp deploy/.env.example deploy/.env   # then edit the values
-#   docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env up -d
+# Local stack: PostgreSQL + API + Worker. Usage (from the repo root):
+#   cp deploy/.env.example deploy/.env   # then set POSTGRES_PASSWORD and ADMIN_PASSWORD_HASH
+#   docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env up -d --build
+# API: http://localhost:5080 (OpenAPI document at /openapi/v1.json)
+# Only PostgreSQL is needed when you run the API from your IDE instead:
+#   docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env up -d postgres
 services:
   postgres:
     image: postgres:17-alpine
@@ -19,5 +22,40 @@ services:
       timeout: 3s
       retries: 10
 
+  api:
+    build: { context: ../backend, target: api }
+    image: showcase-api:dev
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment: &app-env
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Database=${POSTGRES_DB:-showcase};Username=${POSTGRES_USER:-showcase};Password=${POSTGRES_PASSWORD:-change-me}
+      Auth__AdminPasswordHash: ${ADMIN_PASSWORD_HASH:?Set ADMIN_PASSWORD_HASH in deploy/.env}
+      Upload__MaxMegabytes: ${UPLOAD_MAX_MB:-100}
+      Database__AutoMigrate: "true"
+    ports:
+      - "5080:8080"
+    volumes:
+      - uploads:/data/uploads
+      - tus:/data/tus
+      - keys:/data/keys
+
+  worker:
+    build: { context: ../backend, target: worker }
+    image: showcase-worker:dev
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_started }
+    environment:
+      <<: *app-env
+      DOTNET_ENVIRONMENT: Development
+      Worker__Concurrency: "1"
+    volumes:
+      - uploads:/data/uploads
+
 volumes:
   pgdata:
+  uploads:
+  tus:
+  keys:
