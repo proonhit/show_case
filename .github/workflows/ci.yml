@@ -126,11 +126,6 @@ jobs:
           pnpm --filter @showcase/showcase build
           pnpm --filter @showcase/showcase e2e
 
-      - name: TEMP print screenshots
-        if: always()
-        working-directory: frontend/apps/showcase/test-results/screens
-        run: for f in s01-*.png s04-*.png; do echo "=====BEGIN $f"; base64 -w 0 "$f"; echo; echo "=====END $f"; done
-
       - name: Upload screenshots and report
         if: always()
         uses: actions/upload-artifact@v4
