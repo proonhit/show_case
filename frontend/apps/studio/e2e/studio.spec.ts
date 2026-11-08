@@ -148,9 +148,9 @@ test('about page: profile, links, avatar and CV', async ({ page, request }) => {
   await page.getByLabel('Địa chỉ liên kết 2').fill('javascript:alert(1)');
   await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
   await expect(page.getByText('Link must be an http(s) URL or an email address.')).toBeVisible();
+  // Removing the bad row brings the form back to what is saved, so there is nothing left to save.
   await page.getByRole('button', { name: /Xoá liên kết/ }).last().click();
-  await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
-  await expect(page.getByRole('button', { name: 'Đã lưu' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Đã lưu' })).toBeDisabled();
 
   await page.locator('input[type=file][accept^="image"]').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: PNG_1PX });
   await expect(page.getByRole('img', { name: 'Ảnh đại diện hiện tại' })).toBeVisible();
