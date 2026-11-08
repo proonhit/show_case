@@ -136,7 +136,7 @@ jobs:
           export CHROME_PATH=$(cd ../studio && node -e "console.log(require('@playwright/test').chromium.executablePath())")
           node scripts/serve.mjs & sleep 1
           slug=$(node -e "const s=require('./data/site.json'); console.log((s.models.find(m=>m.modelUrl)||s.models[0]).slug)")
-          node scripts/lighthouse.mjs http://localhost:5175/en http://localhost:5175/en/models/$slug http://localhost:5175/vi/about
+          node scripts/lighthouse.mjs http://localhost:5175/en "http://localhost:5175/en/models/$slug#report" http://localhost:5175/vi/about
 
       - name: Upload screenshots and report
         if: always()

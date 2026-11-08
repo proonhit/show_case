@@ -1,7 +1,9 @@
-// Serves the generated site (.output/public) like a static host: /x → /x/index.html. No dependencies.
+// Serves the generated site (.output/public) like a static host (Cloudflare Pages):
+// /x → /x/index.html, brotli/gzip for text files. No dependencies.
 import { createReadStream, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize } from 'node:path';
+import { createBrotliCompress, createGzip } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../.output/public', import.meta.url));
@@ -17,8 +19,20 @@ createServer((req, res) => {
   for (const candidate of [join(root, path), join(root, path, 'index.html'), join(root, `${path}.html`)]) {
     try {
       if (statSync(candidate).isFile()) {
-        res.writeHead(200, { 'content-type': TYPES[extname(candidate)] ?? 'application/octet-stream' });
-        createReadStream(candidate).pipe(res);
+        const type = TYPES[extname(candidate)] ?? 'application/octet-stream';
+        const accept = String(req.headers['accept-encoding'] ?? '');
+        const text = /^(text\/|application\/(json|xml)|image\/svg)/.test(type);
+        const encoding = !text ? null : accept.includes('br') ? 'br' : accept.includes('gzip') ? 'gzip' : null;
+        const immutable = candidate.includes(`${'/'}_nuxt${'/'}`);
+        res.writeHead(200, {
+          'content-type': type,
+          'cache-control': immutable ? 'public, max-age=31536000, immutable' : 'public, max-age=0, must-revalidate',
+          ...(encoding ? { 'content-encoding': encoding, vary: 'accept-encoding' } : {}),
+        });
+        const file = createReadStream(candidate);
+        if (encoding === 'br') file.pipe(createBrotliCompress()).pipe(res);
+        else if (encoding === 'gzip') file.pipe(createGzip()).pipe(res);
+        else file.pipe(res);
         return;
       }
     } catch { /* try the next one */ }
