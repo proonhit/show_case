@@ -37,6 +37,7 @@ jobs:
       - name: Add migration
         working-directory: backend
         run: |
+          dotnet restore Showcase.slnx
           dotnet ef migrations add "${{ steps.req.outputs.name }}" \
             --project src/Showcase.Infrastructure \
             --startup-project src/Showcase.Infrastructure \
