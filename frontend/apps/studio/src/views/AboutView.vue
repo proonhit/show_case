@@ -34,6 +34,21 @@ const errors = ref<Record<string, string[]>>({});
 const message = ref('');
 const saving = ref(false);
 
+/** Same rule as the server: an http(s) URL or an email address. */
+const isLink = (value: string) => {
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return true;
+  try {
+    return ['http:', 'https:'].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+};
+
+// An error about the links goes away as soon as the links are edited.
+watch(() => JSON.stringify(form.links), () => {
+  errors.value = Object.fromEntries(Object.entries(errors.value).filter(([k]) => !k.toLowerCase().startsWith('links')));
+});
+
 function addLink() {
   const used = new Set(form.links.map((l) => l.name));
   form.links.push({ name: SUGGESTED.find((s) => !used.has(s)) ?? '', url: '' });
@@ -45,6 +60,10 @@ async function save() {
   if (!form.displayName.trim()) return (errors.value = { DisplayName: ['Cần tên hiển thị.'] });
   const links: Record<string, string> = {};
   for (const l of form.links) if (l.name.trim() && l.url.trim()) links[l.name.trim().toLowerCase()] = l.url.trim();
+  const bad = Object.entries(links).find(([, url]) => !isLink(url));
+  if (bad) return (errors.value = { Links: [`Liên kết “${bad[0]}” phải là địa chỉ http(s)://… hoặc email.`] });
+  const badName = Object.keys(links).find((n) => !/^[a-z0-9-]+$/.test(n));
+  if (badName) return (errors.value = { Links: [`Tên liên kết “${badName}” chỉ gồm chữ thường, số và dấu gạch nối.`] });
   saving.value = true;
   try {
     const res = await api.PUT('/api/admin/profile', {
@@ -86,7 +105,10 @@ async function upload(kind: 'avatar' | 'cv', file: File | undefined) {
     const p = await uploadFile<ProfileDto>(`/api/admin/profile/${kind}`, file);
     queryClient.setQueryData(queryKeys.profile, p);
   } catch (e) {
-    fileError.value = e instanceof Error ? e.message : 'Upload không thành công.';
+    // The server checks the real file type; say it in Vietnamese.
+    fileError.value = e instanceof ApiError && e.status === 400
+      ? kind === 'avatar' ? 'Ảnh phải là file JPG, PNG hoặc WebP thật (dưới 5 MB).' : 'CV phải là file PDF thật (dưới 10 MB).'
+      : e instanceof Error ? e.message : 'Upload không thành công.';
   } finally {
     fileBusy.value = null;
   }

@@ -143,13 +143,15 @@ test('about page: profile, links, avatar and CV', async ({ page, request }) => {
   await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
   await expect(page.getByRole('button', { name: 'Đã lưu' })).toBeVisible();
 
-  // A bad link is refused by the server and shown.
+  // A bad link is caught before saving, in Vietnamese; the message goes away once the row is removed.
   await page.getByRole('button', { name: 'Thêm liên kết' }).click();
   await page.getByLabel('Địa chỉ liên kết 2').fill('javascript:alert(1)');
   await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
-  await expect(page.getByText('Link must be an http(s) URL or an email address.')).toBeVisible();
+  const linkError = page.getByText(/phải là địa chỉ http\(s\):\/\/… hoặc email/);
+  await expect(linkError).toBeVisible();
   // Removing the bad row brings the form back to what is saved, so there is nothing left to save.
   await page.getByRole('button', { name: /Xoá liên kết/ }).last().click();
+  await expect(linkError).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Đã lưu' })).toBeDisabled();
 
   await page.locator('input[type=file][accept^="image"]').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: PNG_1PX });
@@ -160,7 +162,7 @@ test('about page: profile, links, avatar and CV', async ({ page, request }) => {
 
   // A "PDF" that is really an image is refused.
   await page.locator('input[type=file][accept="application/pdf"]').setInputFiles({ name: 'fake.pdf', mimeType: 'application/pdf', buffer: PNG_1PX });
-  await expect(page.getByRole('alert')).toContainText('CV must be a PDF.');
+  await expect(page.getByRole('alert')).toContainText('CV phải là file PDF thật');
 
   const pub = await (await request.get('/api/public/profile')).json();
   expect(pub.headlineVi).toBe('Hoạ sĩ 3D — đồ vật');
