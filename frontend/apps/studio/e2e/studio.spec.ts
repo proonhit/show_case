@@ -69,7 +69,7 @@ test('log in → create model → upload .glb → preview map modes → publish'
 
   // The list and dashboard show it.
   await page.getByRole('link', { name: 'Model 3D' }).first().click();
-  await expect(page.getByRole('link', { name: title })).toBeVisible();
+  await expect(page.getByRole('link', { name: title, exact: true })).toBeVisible();
   await page.screenshot({ path: `${shots}/06-models-list.png` });
   await page.getByRole('link', { name: 'Dashboard' }).click();
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
