@@ -60,8 +60,8 @@ Done when the demo page opens a 300K-triangle model smoothly on a laptop and a m
 - [x] Login + route guard via `/api/auth/me` — done 08/11 (PR #8)
 - [x] Dashboard: 4 stat tiles, recent models, to-do list — done 08/11 (PR #8; Showcase build status waits for GĐ5)
 - [x] Model list: status filter, drag-and-drop order, featured, quick actions — done 08/11 (PR #8)
-- [ ] Upload & edit: tus upload with progress, job steps, detected maps, `viewer-core` preview
-- [ ] EN/VI info form, viewer settings, thumbnail & extra images, Draft/Publish
+- [x] Upload & edit: tus upload with progress, detected maps, `viewer-core` preview — done 08/11 (PR #9, tus-js-client instead of Uppy); job steps appear once the GĐ2 pipeline exists
+- [ ] EN/VI info form, viewer settings, thumbnail & extra images, Draft/Publish — form + Draft/Publish/Archive done (PR #9, no VeeValidate/Zod); viewer settings, thumbnail, extra images pending
 - [ ] Categories & tags; About page + CV upload
 - [ ] Playwright: login → upload → publish
 

@@ -20,6 +20,13 @@ export const viTitleOf = (m: ModelSummaryDto) => m.translations.find((t) => t.lo
 
 export const queryKeys = {
   models: ['models'] as const,
+  model: (id: string) => ['models', id] as const,
+  files: (id: string) => ['models', id, 'files'] as const,
+  categories: ['categories'] as const,
+  tags: ['tags'] as const,
   stats: ['stats'] as const,
   me: ['me'] as const,
 };
+
+/** Largest upload the server accepts (Upload:MaxMegabytes). */
+export const MAX_UPLOAD_MB = 100;

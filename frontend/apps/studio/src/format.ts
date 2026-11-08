@@ -40,3 +40,18 @@ export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
   copy.splice(to, 0, item);
   return copy;
 }
+
+/** "Sci-fi Helmet" → "sci-fi-helmet"; Vietnamese marks are dropped ("Mũ giáp" → "mu-giap"). */
+export function slugify(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120)
+    .replace(/-+$/, '');
+}
+
+export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

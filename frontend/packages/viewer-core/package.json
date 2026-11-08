@@ -2,16 +2,16 @@
   "name": "@showcase/viewer-core",
   "version": "0.3.0",
   "private": true,
-  "description": "Three.js model viewer: 360° turntable and 7 texture-map modes. Framework-free, with an optional thin Vue wrapper.",
+  "description": "Three.js model viewer: 360° turntable and 7 texture-map modes. Framework-free, with an optional thin Vue wrapper. Consumed as TypeScript source inside the workspace; `build` checks it bundles.",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./vue": { "types": "./dist/vue.d.ts", "import": "./dist/vue.js" }
+    ".": "./src/index.ts",
+    "./vue": "./src/vue.ts"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite --config vite.demo.config.ts",
     "build": "vite build && tsc -p tsconfig.build.json",
@@ -23,7 +23,9 @@
     "vue": "^3.4.0"
   },
   "peerDependenciesMeta": {
-    "vue": { "optional": true }
+    "vue": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/three": "~0.170.0",

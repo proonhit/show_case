@@ -44,6 +44,17 @@ public static class UploadEndpoints
                 .ToListAsync(ct))
             .WithTags("Admin · Models")
             .RequireAuthorization();
+
+        // The stored file itself, for the Studio preview (supports Range so large files can resume).
+        app.MapGet("/api/admin/files/{id:guid}/content", async (Guid id, AppDbContext db, IFileStorage storage, CancellationToken ct) =>
+        {
+            var f = await db.ModelFiles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+            if (f is null || !storage.Exists(f.StorageKey)) return Results.NotFound();
+            var type = f.Format == "glb" ? "model/gltf-binary" : "application/octet-stream";
+            return Results.Stream(storage.OpenRead(f.StorageKey), type, $"model-v{f.Version}.{f.Format}", enableRangeProcessing: true);
+        })
+            .WithTags("Admin · Models")
+            .RequireAuthorization();
     }
 
     private static DefaultTusConfiguration CreateConfiguration(HttpContext http)
