@@ -14,6 +14,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     locale: 'vi-VN',
+    colorScheme: 'dark', // the Studio follows the system setting; start from the designed default
   },
   projects: [
     {
