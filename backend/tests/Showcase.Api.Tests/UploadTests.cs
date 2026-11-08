@@ -75,6 +75,23 @@ public class UploadTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task Stored_file_can_be_downloaded_by_the_owner_only()
+    {
+        var owner = await factory.CreateOwnerClientAsync();
+        var modelId = await CreateModelAsync(owner);
+        await UploadAsync(owner, modelId, "helmet.glb", GlbBytes);
+        var file = Assert.Single(await FilesAsync(owner, modelId));
+
+        var res = await owner.GetAsync($"/api/admin/files/{file.Id}/content");
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        Assert.Equal("model/gltf-binary", res.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(GlbBytes, await res.Content.ReadAsByteArrayAsync());
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().GetAsync($"/api/admin/files/{file.Id}/content")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await owner.GetAsync($"/api/admin/files/{Guid.NewGuid()}/content")).StatusCode);
+    }
+
+    [Fact]
     public async Task File_whose_content_is_not_glb_is_not_recorded()
     {
         var owner = await factory.CreateOwnerClientAsync();

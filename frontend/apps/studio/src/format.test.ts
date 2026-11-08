@@ -24,3 +24,13 @@ describe('format', () => {
     expect(moveItem(['a', 'b'], 0, 5)).toEqual(['a', 'b']);
   });
 });
+
+describe('slugify', () => {
+  it('makes URL-safe slugs, including from Vietnamese', async () => {
+    const { slugify, SLUG_PATTERN } = await import('./format');
+    expect(slugify('Sci-fi Helmet')).toBe('sci-fi-helmet');
+    expect(slugify('  Mũ giáp   Đỏ! ')).toBe('mu-giap-do');
+    expect(slugify('***')).toBe('');
+    expect(SLUG_PATTERN.test(slugify('Vespa Scooter (1965)'))).toBe(true);
+  });
+});

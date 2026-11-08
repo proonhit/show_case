@@ -17,8 +17,8 @@ export const router = createRouter({
       children: [
         { path: '', name: 'dashboard', component: () => import('./views/DashboardView.vue'), meta: { title: 'Dashboard' } },
         { path: 'models', name: 'models', component: () => import('./views/ModelsView.vue'), meta: { title: 'Model 3D' } },
-        { path: 'models/new', name: 'model-new', component: () => import('./views/ComingSoonView.vue'), meta: { title: 'Upload model mới' } },
-        { path: 'models/:id', name: 'model-edit', component: () => import('./views/ComingSoonView.vue'), meta: { title: 'Sửa model' } },
+        { path: 'models/new', name: 'model-new', component: () => import('./views/ModelEditView.vue'), meta: { title: 'Model mới' } },
+        { path: 'models/:id', name: 'model-edit', component: () => import('./views/ModelEditView.vue'), meta: { title: 'Sửa model' } },
         { path: 'taxonomy', name: 'taxonomy', component: () => import('./views/ComingSoonView.vue'), meta: { title: 'Danh mục & tag' } },
         { path: 'about', name: 'about', component: () => import('./views/ComingSoonView.vue'), meta: { title: 'Trang About' } },
       ],
