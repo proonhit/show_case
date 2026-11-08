@@ -42,4 +42,15 @@ Done when the sample `.fbx` converts with textures intact, the viewer shows the 
 
 GĐ1 done criteria met 08/11 (PR #6): the `docker-smoke` CI job starts the stack, logs in, creates a model, uploads 100 MB with tus and sees the Worker receive it. Tag `v0.1` after merge.
 
+## GĐ3 checklist
+
+- [x] pnpm workspace `frontend/`; package `viewer-core` (TypeScript, Vite library mode) — done 08/11 (PR #7)
+- [x] `ModelViewer`: .glb loading (GLTFLoader + Meshopt + KTX2), studio/HDRI lighting, orbit with vertical limits, framing from the bounding box — done 08/11 (PR #7)
+- [x] Turntable (stops on touch), reset camera, fullscreen, animation — done 08/11 (PR #7)
+- [ ] 7 map modes (Final, Wireframe, Base color, Metallic, Roughness, Normal, AO) by material swap, modes without a map disabled — code + tests done (PR #7); browser check with the sample models pending
+- [x] Lower pixel ratio on phones; load progress events; pause when off-screen — done 08/11 (PR #7)
+- [x] Thin Vue component + demo page; Vitest for the mode logic — done 08/11 (PR #7, 15 tests)
+
+Done when the demo page opens a 300K-triangle model smoothly on a laptop and a mid-range phone, and keys 1–7 switch all 7 modes. Tag `v0.3`.
+
 The detailed task list for every phase lives in the shared plan document.
