@@ -16,7 +16,8 @@ Working rules: every phase ends with a runnable build and a git tag; `main` alwa
 
 ## GĐ0 checklist
 
-- [x] Repo skeleton: `backend/`, `frontend/`, `deploy/`, `docs/`, `.gitignore`, `.editorconfig`, `.env.example`
+- [x] Repo skeleton: `backend/`, `frontend/`, `deploy/`, `docs/`, `.gitignore`, `.editorconfig`, `.env.example` — done 08/11 (PR #1)
+- [x] Write spike scripts: `spikes/convert` (Blender FBX → GLB) and `spikes/viewer` (7 map modes) — done 08/11 (PR #1)
 - [ ] Install tools: .NET 10 SDK, Node LTS + pnpm, Docker Desktop, Blender, `gltf-transform`
 - [ ] 3 sample models in `samples/`: one `.glb`, one `.fbx` with embedded textures, one ~300K triangles
 - [ ] Run `spikes/convert` on the `.fbx`, fill in the results table
