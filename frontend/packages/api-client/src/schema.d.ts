@@ -1071,7 +1071,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ModelSummaryDto"][];
+                        "application/json": components["schemas"]["PublicModelDto"][];
                     };
                 };
             };
@@ -1108,8 +1108,78 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ModelSummaryDto"];
+                        "application/json": components["schemas"]["PublicModelDto"];
                     };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/models/{slug}/model.glb": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/images/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -1435,6 +1505,48 @@ export interface components {
             };
             avatarUrl?: null | string;
             cvUrl?: null | string;
+        };
+        PublicModelDto: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            isFeatured: boolean;
+            /** Format: int32 */
+            sortOrder: number;
+            categorySlug: null | string;
+            tagSlugs: string[];
+            translations: components["schemas"]["TranslationDto"][];
+            software: null | string;
+            /** Format: int32 */
+            hoursSpent: null | number;
+            /** Format: date */
+            completedAt: null | string;
+            stats: null | components["schemas"]["PublicStatsDto"];
+            viewerSettings: components["schemas"]["ViewerSettingsDto"];
+            modelUrl: null | string;
+            /** Format: int64 */
+            modelBytes: null | number;
+            sourceFormat: null | string;
+            thumbnailUrl: null | string;
+            images: components["schemas"]["ModelImageDto"][];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PublicStatsDto: {
+            /** Format: int32 */
+            triangles: number;
+            /** Format: int32 */
+            vertices: number;
+            /** Format: int32 */
+            meshes: number;
+            /** Format: int32 */
+            materials: number;
+            /** Format: int32 */
+            textures: number;
+            /** Format: int32 */
+            maxTextureSize: number;
+            hasAnimation: boolean;
+            availableMaps: string[];
         };
         ReorderModelsRequest: {
             ids: string[];

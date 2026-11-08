@@ -62,7 +62,7 @@ public class CatalogTests(ApiFactory factory)
         var publish = await owner.PatchAsJsonAsync($"/api/admin/models/{model.Id}/status", new UpdateModelStatusRequest("Published", true));
         Assert.Equal(HttpStatusCode.NoContent, publish.StatusCode);
 
-        var published = await anon.GetFromJsonAsync<ModelSummaryDto>($"/api/public/models/{slug}");
+        var published = await anon.GetFromJsonAsync<PublicModelDto>($"/api/public/models/{slug}");
         Assert.True(published!.IsFeatured);
         Assert.Contains(published.Translations, t => t.Locale == "vi" && t.Title == "Mũ giáp sci-fi");
     }

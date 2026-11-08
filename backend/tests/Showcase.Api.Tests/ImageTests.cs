@@ -88,3 +88,35 @@ public class ImageTests(ApiFactory factory)
         Assert.Equal(HttpStatusCode.Unauthorized, (await UploadAsync(factory.CreateClient(), id, "Render", Png)).StatusCode);
     }
 }
+
+[Collection(ApiCollection.Name)]
+public class PublicShowcaseTests(ApiFactory factory)
+{
+    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, .. new byte[64]];
+
+    [Fact]
+    public async Task Published_model_exposes_files_and_images_drafts_do_not()
+    {
+        var owner = await factory.CreateOwnerClientAsync();
+        var anon = factory.CreateClient();
+        var slug = $"pub-{Guid.NewGuid():N}"[..14];
+        var created = await owner.PostAsJsonAsync("/api/admin/models", new UpsertModelRequest(slug, null, "Blender", 12, null, [new TranslationDto("en", "Public", null)]));
+        var id = (await created.Content.ReadFromJsonAsync<ModelSummaryDto>())!.Id;
+        var form = new MultipartFormDataContent { { new ByteArrayContent(Png), "file", "t.png" }, { new StringContent("Render"), "kind" } };
+        var image = (await (await owner.PostAsync($"/api/admin/models/{id}/images", form)).Content.ReadFromJsonAsync<ModelImageDto>())!;
+
+        // Draft: nothing public, not even the image by id.
+        Assert.Equal(HttpStatusCode.NotFound, (await anon.GetAsync($"/api/public/models/{slug}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await anon.GetAsync($"/api/public/images/{image.Id}")).StatusCode);
+
+        await owner.PatchAsJsonAsync($"/api/admin/models/{id}/status", new UpdateModelStatusRequest("Published", false));
+        var pub = (await anon.GetFromJsonAsync<PublicModelDto>($"/api/public/models/{slug}"))!;
+        Assert.Equal("Blender", pub.Software);
+        Assert.Null(pub.ModelUrl); // no file uploaded yet
+        var img = Assert.Single(pub.Images);
+        Assert.Equal($"/api/public/images/{image.Id}", img.Url);
+        Assert.Equal("image/png", (await anon.GetAsync(img.Url)).Content.Headers.ContentType?.MediaType);
+        Assert.Contains((await anon.GetFromJsonAsync<List<PublicModelDto>>("/api/public/models"))!, m => m.Slug == slug);
+        Assert.Equal(HttpStatusCode.NotFound, (await anon.GetAsync($"/api/public/models/{slug}/model.glb")).StatusCode);
+    }
+}

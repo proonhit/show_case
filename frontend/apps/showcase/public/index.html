@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio</title>
+<link rel="alternate" hreflang="en" href="/en">
+<link rel="alternate" hreflang="vi" href="/vi">
+<link rel="alternate" hreflang="x-default" href="/en">
+<meta http-equiv="refresh" content="0; url=/en">
+<script>
+  // Vietnamese browsers go to /vi, everyone else to /en (the meta refresh covers no-JS).
+  try { location.replace(/^vi\b/i.test(navigator.language || '') ? '/vi' : '/en'); } catch (e) {}
+</script>
+<style>html{background:#0E0F12;color:#9AA0AB;font:15px system-ui,sans-serif}a{color:#FF8A3D}</style>
+</head>
+<body>
+<p><a href="/en">English</a> · <a href="/vi">Tiếng Việt</a></p>
+</body>
+</html>
