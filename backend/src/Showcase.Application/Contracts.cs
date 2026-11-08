@@ -63,7 +63,7 @@ public record ViewerSettingsDto(
     double[]? CameraTarget = null);
 
 /// <summary>Thumbnail (one per model), renders, wireframes and process shots.</summary>
-public record ModelImageDto(Guid Id, string Kind, string Url, string? CaptionEn, string? CaptionVi, int SortOrder);
+public record ModelImageDto(Guid Id, string Kind, string Url, string? CaptionEn, string? CaptionVi, int SortOrder, string? SmallUrl = null);
 
 public record UpdateImageRequest(string? CaptionEn, string? CaptionVi);
 
@@ -114,6 +114,8 @@ public record PublicModelDto(
     string? ModelUrl,
     long? ModelBytes,
     string? SourceFormat,
+    string? MobileModelUrl,
+    long? MobileModelBytes,
     string? ThumbnailUrl,
     IReadOnlyList<ModelImageDto> Images,
     DateTimeOffset UpdatedAt);

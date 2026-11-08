@@ -2,7 +2,7 @@
 import type { ModelFileDto } from '@showcase/api-client';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { Upload } from 'tus-js-client';
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { api, MAX_UPLOAD_MB, queryKeys } from '../api';
 import { formatBytes, timeAgo } from '../format';
 import AppIcon from './AppIcon.vue';
@@ -61,10 +61,11 @@ function start(file: File) {
       // The server checks the file's first bytes after the last chunk; a fake .glb is dropped silently.
       state.value = 'checking';
       await queryClient.invalidateQueries({ queryKey: queryKeys.files(props.modelId) });
-      const added = (files.data.value ?? []).find((f) => !before.has(f.id));
+      const added = (files.data.value ?? []).find((f) => !before.has(f.id) && f.kind === 'Original');
       if (!added) return fail('Máy chủ không nhận file: nội dung không phải .glb/.fbx hợp lệ.');
       state.value = 'done';
       emit('uploaded', added);
+      void queryClient.invalidateQueries({ queryKey: jobKey.value });
       void queryClient.invalidateQueries({ queryKey: queryKeys.stats });
     },
   });
@@ -93,6 +94,44 @@ function cancel() {
 onBeforeUnmount(() => void upload?.abort());
 
 const busy = computed(() => state.value === 'uploading' || state.value === 'paused' || state.value === 'checking');
+
+// ---- processing (Worker pipeline) ---------------------------------------------
+
+const STEP_LABELS: Record<string, string> = {
+  upload: 'Nhận file',
+  convert: 'Chuyển .fbx → .glb',
+  stats: 'Đọc thông số',
+  optimize: 'Tối ưu (Meshopt + WebP)',
+};
+const STATUS_LABELS: Record<string, string> = { pending: 'Chờ', running: 'Đang chạy', done: 'Xong', skipped: 'Bỏ qua', failed: 'Lỗi' };
+const KIND_LABELS: Record<string, string> = { Original: 'Gốc', Optimized: 'Tối ưu', Mobile: 'Điện thoại' };
+
+const jobKey = computed(() => ['models', props.modelId, 'job'] as const);
+const job = useQuery({
+  queryKey: jobKey,
+  queryFn: async () => {
+    try {
+      return (await api.GET('/api/admin/models/{id}/jobs/latest', { params: { path: { id: props.modelId } } })).data!;
+    } catch (e) {
+      if ((e as { status?: number }).status === 404) return null; // nothing uploaded yet
+      throw e;
+    }
+  },
+  // Poll while the Worker is busy; stop once the job has finished.
+  refetchInterval: (q) => (q.state.data && ['Queued', 'Running'].includes(q.state.data.status) ? 1500 : false),
+});
+
+// When a job finishes, the files (optimized/phone copies), stats and preview change.
+watch(() => `${job.data.value?.id}:${job.data.value?.status}`, (now, before) => {
+  const status = job.data.value?.status;
+  if (now !== before && status && !['Queued', 'Running'].includes(status)) {
+    void queryClient.invalidateQueries({ queryKey: ['models', props.modelId] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.models });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.stats });
+  }
+});
+
+const seconds = (ms: number | null | undefined) => (ms == null ? '' : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
 </script>
 
 <template>
@@ -127,11 +166,28 @@ const busy = computed(() => state.value === 'uploading' || state.value === 'paus
     </div>
 
     <p v-if="state === 'error'" class="error" role="alert">{{ message }}</p>
-    <p v-if="state === 'done'" class="ok" role="status"><AppIcon name="check" :size="16" />Đã nhận {{ fileName }}. Bước chuyển đổi và tối ưu sẽ chạy tự động (GĐ2).</p>
+    <p v-if="state === 'done'" class="ok" role="status"><AppIcon name="check" :size="16" />Đã nhận {{ fileName }}.</p>
+
+    <div v-if="job.data.value" class="job" aria-live="polite">
+      <div class="job-head">
+        <strong>Xử lý file</strong>
+        <span class="job-status" :data-status="job.data.value.status">{{
+          { Queued: 'Đang chờ', Running: 'Đang xử lý…', Succeeded: 'Hoàn tất', Failed: 'Lỗi' }[job.data.value.status] ?? job.data.value.status }}</span>
+      </div>
+      <ol class="steps">
+        <li v-for="s in job.data.value.steps" :key="s.name" :data-status="s.status">
+          <span class="dot" aria-hidden="true" />
+          <span class="step-name">{{ STEP_LABELS[s.name] ?? s.name }}</span>
+          <span class="muted step-state">{{ STATUS_LABELS[s.status] ?? s.status }}<template v-if="s.durationMs != null"> · {{ seconds(s.durationMs) }}</template></span>
+          <span v-if="s.message" class="step-msg muted">{{ s.message }}</span>
+        </li>
+      </ol>
+      <p v-if="job.data.value.error" class="error" role="alert">{{ job.data.value.error }}</p>
+    </div>
 
     <ul v-if="files.data.value?.length" class="files">
       <li v-for="f in files.data.value" :key="f.id">
-        <span class="mono">v{{ f.version }} · .{{ f.format }}</span>
+        <span class="mono">v{{ f.version }} · {{ KIND_LABELS[f.kind] ?? f.kind }} · .{{ f.format }}</span>
         <span class="muted">{{ formatBytes(f.sizeBytes) }} · {{ timeAgo(f.uploadedAt) }}</span>
         <span v-if="f.isCurrent" class="current">Đang dùng</span>
       </li>
@@ -160,5 +216,21 @@ const busy = computed(() => state.value === 'uploading' || state.value === 'paus
 .error { margin: 0; }
 .files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .files li { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.job { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--surface2); }
+.job-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.job-status { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--surface); }
+.job-status[data-status='Succeeded'] { color: var(--success); }
+.job-status[data-status='Failed'] { color: var(--danger); }
+.job-status[data-status='Running'], .job-status[data-status='Queued'] { color: var(--accent); }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.steps li { display: grid; grid-template-columns: 12px 1fr auto; column-gap: 10px; align-items: center; font-size: 13px; }
+.steps .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+.steps li[data-status='done'] .dot { background: var(--success); }
+.steps li[data-status='running'] .dot { background: var(--accent); animation: pulse 1s infinite alternate; }
+.steps li[data-status='failed'] .dot { background: var(--danger); }
+.steps li[data-status='skipped'] .step-name { color: var(--muted); }
+.step-msg { grid-column: 2 / -1; font-size: 12px; overflow-wrap: anywhere; }
+@keyframes pulse { to { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .steps li[data-status='running'] .dot { animation: none; } }
 .current { margin-left: auto; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
 </style>

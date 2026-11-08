@@ -14,7 +14,9 @@ onMounted(() => {
   else setTimeout(start, 200);
 });
 
-const props = defineProps<{ src: string; settings: ViewerSettings; poster: string | null; title: string }>();
+const props = defineProps<{ src: string; mobileSrc?: string | null; settings: ViewerSettings; poster: string | null; title: string }>();
+// Phones and tablets get the lighter copy the pipeline makes for models above 150K triangles.
+const url = computed(() => (props.mobileSrc && matchMedia('(pointer: coarse)').matches ? props.mobileSrc : props.src));
 const emit = defineEmits<{ info: [info: ModelInfo] }>();
 const { t } = useI18n();
 
@@ -51,7 +53,7 @@ const badge = computed(() => {
 
 <template>
   <div class="stage" tabindex="0" :aria-label="`${title}: ${t('detail.hint')}`" @keydown="onKey">
-    <ModelViewerView v-if="started" ref="viewer" :src="src" v-model:mode="mode" v-model:autoRotate="spin"
+    <ModelViewerView v-if="started" ref="viewer" :src="url" v-model:mode="mode" v-model:autoRotate="spin"
       :auto-rotate-speed="settings.autoRotateSpeed" :background="settings.background ?? null" :camera="camera"
       @progress="progress = $event.ratio" @load="onLoad" @error="error = $event.message" />
     <img v-if="!info && poster" :src="poster" alt="" class="poster" />

@@ -77,8 +77,12 @@ profile.avatarUrl = await download(profile.avatarUrl, 'profile', 'avatar');
 profile.cvUrl = await download(profile.cvUrl, 'profile', 'cv');
 for (const m of models) {
   m.modelUrl = await download(m.modelUrl, 'models', m.slug);
+  m.mobileModelUrl = await download(m.mobileModelUrl, 'models', `${m.slug}-mobile`);
   m.thumbnailUrl = await download(m.thumbnailUrl, 'thumbs', m.slug);
-  for (const img of m.images) img.url = await download(img.url, 'images', img.id);
+  for (const img of m.images) {
+    img.url = await download(img.url, 'images', img.id);
+    img.smallUrl = await download(img.smallUrl, 'images', `${img.id}-small`);
+  }
 }
 
 const site = { generatedAt: new Date().toISOString(), profile, categories, tags, models };

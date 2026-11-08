@@ -83,7 +83,7 @@ function onKey(e: KeyboardEvent) {
         :auto-rotate-speed="speed" :background="background" :camera="camera"
         @progress="progress = $event.ratio" @load="onLoad"
         @error="error = $event.message; loading = false" />
-      <p v-if="!src" class="overlay muted">Chưa có file .glb để xem trước. File .fbx sẽ xem được sau khi chuyển đổi (GĐ2).</p>
+      <p v-if="!src" class="overlay muted">Chưa có file .glb để xem trước. File .fbx xem được ngay khi bước chuyển đổi xong.</p>
       <p v-else-if="loading" class="overlay muted">Đang tải{{ progress != null ? ` ${Math.round(progress * 100)}%` : '…' }}</p>
       <p v-if="error" class="overlay error" role="alert">Không mở được model: {{ error }}</p>
     </div>

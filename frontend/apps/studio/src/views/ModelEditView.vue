@@ -172,9 +172,11 @@ async function setStatus(status: 'Draft' | 'Published' | 'Archived') {
 // ---- preview ----------------------------------------------------------------
 
 /** The current original if it is a .glb; .fbx needs the GĐ2 conversion first. */
+/** The optimized .glb once processing has run, else the uploaded .glb (an .fbx needs converting first). */
 const previewSrc = computed(() => {
-  const current = files.data.value?.find((f) => f.isCurrent && f.kind === 'Original');
-  return current?.format === 'glb' ? `/api/admin/files/${current.id}/content` : null;
+  const current = (kind: string) => files.data.value?.find((f) => f.isCurrent && f.kind === kind && f.format === 'glb');
+  const file = current('Optimized') ?? current('Original');
+  return file ? `/api/admin/files/${file.id}/content` : null;
 });
 
 // ---- viewer settings and images ----------------------------------------------

@@ -43,7 +43,11 @@ test('log in → create model → upload .glb → preview map modes → publish'
   // Upload through tus; the server checks the bytes and records version 1.
   await page.locator('input[type=file][accept=".glb,.fbx"]').setInputFiles(cube);
   await expect(page.getByRole('status')).toContainText('Đã nhận cube.glb');
-  await expect(page.getByText('v1 · .glb')).toBeVisible();
+  await expect(page.getByText('v1 · Gốc · .glb')).toBeVisible();
+  // The Worker runs the pipeline: stats are read, an optimized copy is made.
+  await expect(page.getByText('Hoàn tất')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(/12 triangles · 1 meshes · 1 materials · maps: baseColor, metallicRoughness, normal, occlusion/)).toBeVisible();
+  await expect(page.getByText('v1 · Tối ưu · .glb')).toBeVisible();
 
   // Preview loads in WebGL; the cube has every map, so all 7 modes are enabled.
   const modes = page.getByRole('group', { name: 'Chế độ map' });

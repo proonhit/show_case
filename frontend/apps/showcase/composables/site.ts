@@ -3,7 +3,7 @@ import data from '~/data/site.json';
 // Shapes of data/site.json (the API's public DTOs, with file URLs rewritten to /media/…).
 export interface Translation { locale: string; title: string; description: string | null }
 export interface Term { id: string; nameEn: string; nameVi: string; slug: string; sortOrder?: number }
-export interface ImageItem { id: string; kind: string; url: string | null; captionEn: string | null; captionVi: string | null; sortOrder: number }
+export interface ImageItem { id: string; kind: string; url: string | null; smallUrl?: string | null; captionEn: string | null; captionVi: string | null; sortOrder: number }
 export interface ViewerSettings {
   autoRotate: boolean; autoRotateSpeed: number; background: string | null; defaultMode: string;
   cameraPosition: number[] | null; cameraTarget: number[] | null;
@@ -16,7 +16,7 @@ export interface SiteModel {
   id: string; slug: string; isFeatured: boolean; sortOrder: number; categorySlug: string | null; tagSlugs: string[];
   translations: Translation[]; software: string | null; hoursSpent: number | null; completedAt: string | null;
   stats: Stats | null; viewerSettings: ViewerSettings; modelUrl: string | null; modelBytes: number | null;
-  sourceFormat: string | null; thumbnailUrl: string | null; images: ImageItem[]; updatedAt: string;
+  sourceFormat: string | null; mobileModelUrl?: string | null; mobileModelBytes?: number | null; thumbnailUrl: string | null; images: ImageItem[]; updatedAt: string;
 }
 export interface Profile {
   displayName: string; headlineEn: string | null; headlineVi: string | null; bioEn: string | null; bioVi: string | null;

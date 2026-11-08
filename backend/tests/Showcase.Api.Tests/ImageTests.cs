@@ -7,7 +7,7 @@ namespace Showcase.Api.Tests;
 [Collection(ApiCollection.Name)]
 public class ImageTests(ApiFactory factory)
 {
-    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, .. new byte[64]];
+    private static readonly byte[] Png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
 
     private static async Task<Guid> CreateModelAsync(HttpClient owner)
     {
@@ -63,8 +63,11 @@ public class ImageTests(ApiFactory factory)
         var summary = (await owner.GetFromJsonAsync<List<ModelSummaryDto>>("/api/admin/models"))!.Single(m => m.Id == id);
         Assert.Equal(thumb.Url, summary.ThumbnailUrl);
 
+        // Stored as WebP, with a small copy.
         var img = await owner.GetAsync(render.Url);
-        Assert.Equal("image/png", img.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("image/webp", img.Content.Headers.ContentType?.MediaType);
+        Assert.NotNull(render.SmallUrl);
+        Assert.Equal("image/webp", (await owner.GetAsync(render.SmallUrl)).Content.Headers.ContentType?.MediaType);
 
         var captioned = await owner.PatchAsJsonAsync($"/api/admin/images/{render.Id}", new UpdateImageRequest("Final render", "Ảnh render"));
         Assert.Equal("Ảnh render", (await captioned.Content.ReadFromJsonAsync<ModelImageDto>())!.CaptionVi);
@@ -85,6 +88,9 @@ public class ImageTests(ApiFactory factory)
         var id = await CreateModelAsync(owner);
         Assert.Equal(HttpStatusCode.BadRequest, (await UploadAsync(owner, id, "Render", "%PDF-1.4 nope"u8.ToArray())).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await UploadAsync(owner, id, "Banner", Png)).StatusCode);
+        // Right first bytes, broken image.
+        byte[] broken = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, .. new byte[64]];
+        Assert.Equal(HttpStatusCode.BadRequest, (await UploadAsync(owner, id, "Render", broken)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await UploadAsync(factory.CreateClient(), id, "Render", Png)).StatusCode);
     }
 }
@@ -92,7 +98,7 @@ public class ImageTests(ApiFactory factory)
 [Collection(ApiCollection.Name)]
 public class PublicShowcaseTests(ApiFactory factory)
 {
-    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, .. new byte[64]];
+    private static readonly byte[] Png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
 
     [Fact]
     public async Task Published_model_exposes_files_and_images_drafts_do_not()
@@ -115,7 +121,8 @@ public class PublicShowcaseTests(ApiFactory factory)
         Assert.Null(pub.ModelUrl); // no file uploaded yet
         var img = Assert.Single(pub.Images);
         Assert.Equal($"/api/public/images/{image.Id}", img.Url);
-        Assert.Equal("image/png", (await anon.GetAsync(img.Url)).Content.Headers.ContentType?.MediaType);
+        Assert.Equal("image/webp", (await anon.GetAsync(img.Url)).Content.Headers.ContentType?.MediaType);
+        Assert.EndsWith("?size=small", img.SmallUrl);
         Assert.Contains((await anon.GetFromJsonAsync<List<PublicModelDto>>("/api/public/models"))!, m => m.Slug == slug);
         Assert.Equal(HttpStatusCode.NotFound, (await anon.GetAsync($"/api/public/models/{slug}/model.glb")).StatusCode);
     }

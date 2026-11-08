@@ -4,11 +4,12 @@ using Showcase.Application;
 using Showcase.Infrastructure;
 using Showcase.Worker;
 
-// Runs Hangfire jobs: model file processing now, Showcase builds later (GĐ5).
+// Runs Hangfire jobs: the model processing pipeline now, Showcase builds later (GĐ5).
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddSerilog((sp, cfg) => cfg.ReadFrom.Configuration(builder.Configuration).WriteTo.Console());
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.AddScoped<IModelFileProcessor, ModelFileProcessor>();
 builder.Services.AddTransient<Heartbeat>();
 builder.Services.AddHangfireServer(o =>
@@ -17,6 +18,9 @@ builder.Services.AddHangfireServer(o =>
     o.WorkerCount = builder.Configuration.GetValue("Worker:Concurrency", 1);
     o.ServerName = $"worker-{Environment.MachineName}";
 });
+
+// A broken file stays broken: failures are recorded on the ProcessingJob instead of retried.
+GlobalJobFilters.Filters.Add(new AutomaticRetryAttribute { Attempts = 0 });
 
 var host = builder.Build();
 

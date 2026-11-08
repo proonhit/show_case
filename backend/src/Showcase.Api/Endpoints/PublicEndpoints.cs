@@ -48,14 +48,20 @@ public static class PublicEndpoints
             return Results.Stream(storage.OpenRead(file.StorageKey), "model/gltf-binary", enableRangeProcessing: true);
         });
 
-        g.MapGet("/images/{id:guid}", async (Guid id, AppDbContext db, IFileStorage storage, CancellationToken ct) =>
+        g.MapGet("/models/{slug}/mobile.glb", async (string slug, AppDbContext db, IFileStorage storage, CancellationToken ct) =>
+        {
+            var m = await Published(db).FirstOrDefaultAsync(x => x.Slug == slug, ct);
+            var file = m?.Files.FirstOrDefault(f => f.IsCurrent && f.Kind == FileKind.Mobile);
+            if (file is null || !storage.Exists(file.StorageKey)) return Results.NotFound();
+            return Results.Stream(storage.OpenRead(file.StorageKey), "model/gltf-binary", enableRangeProcessing: true);
+        });
+
+        g.MapGet("/images/{id:guid}", async (Guid id, string? size, AppDbContext db, IFileStorage storage, CancellationToken ct) =>
         {
             var image = await db.ModelImages.AsNoTracking()
                 .Where(i => i.Id == id && db.Models.Any(m => m.Id == i.ModelId && m.Status == ModelStatus.Published))
                 .FirstOrDefaultAsync(ct);
-            if (image is null || !storage.Exists(image.StorageKey)) return Results.NotFound();
-            var mime = Path.GetExtension(image.StorageKey) switch { ".png" => "image/png", ".webp" => "image/webp", _ => "image/jpeg" };
-            return Results.Stream(storage.OpenRead(image.StorageKey), mime, enableRangeProcessing: true);
+            return image is null ? Results.NotFound() : ImageEndpoints.StreamImage(storage, image, size);
         });
     }
 
@@ -74,6 +80,7 @@ public static class PublicEndpoints
     {
         var file = ViewableFile(m);
         var original = m.Files.FirstOrDefault(f => f.IsCurrent && f.Kind == FileKind.Original);
+        var phone = m.Files.FirstOrDefault(f => f.IsCurrent && f.Kind == FileKind.Mobile);
         var thumb = m.Images.FirstOrDefault(i => i.Kind == ImageKind.Thumbnail);
         var s = m.Stats;
         return new PublicModelDto(
@@ -93,9 +100,15 @@ public static class PublicEndpoints
             file is null ? null : $"/api/public/models/{m.Slug}/model.glb",
             file?.SizeBytes,
             original?.Format,
+            phone is null ? null : $"/api/public/models/{m.Slug}/mobile.glb",
+            phone?.SizeBytes,
             thumb is null ? null : PublicImageUrl(thumb),
             m.Images.Where(i => i.Kind != ImageKind.Thumbnail).OrderBy(i => i.SortOrder)
-                .Select(i => ImageEndpoints.ToDto(i) with { Url = PublicImageUrl(i) }).ToList(),
+                .Select(i => ImageEndpoints.ToDto(i) with
+                {
+                    Url = PublicImageUrl(i),
+                    SmallUrl = i.SmallStorageKey is null ? null : PublicImageUrl(i) + "?size=small",
+                }).ToList(),
             m.UpdatedAt);
     }
 }

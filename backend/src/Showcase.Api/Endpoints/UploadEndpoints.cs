@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Hangfire;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,7 @@ public class UploadOptions
 public static class UploadEndpoints
 {
     public const string Path = "/api/admin/uploads";
+    private static readonly JsonSerializerOptions JsonWeb = new(JsonSerializerDefaults.Web);
 
     public static void MapUploadEndpoints(this IEndpointRouteBuilder app)
     {
@@ -44,6 +46,17 @@ public static class UploadEndpoints
                 .ToListAsync(ct))
             .WithTags("Admin · Models")
             .RequireAuthorization();
+
+        // Processing progress: the latest job of a model, or one job by id.
+        app.MapGet("/api/admin/models/{id:guid}/jobs/latest", async (Guid id, AppDbContext db, CancellationToken ct) =>
+            await db.ProcessingJobs.AsNoTracking().Where(j => j.ModelId == id).OrderByDescending(j => j.CreatedAt).FirstOrDefaultAsync(ct)
+                is { } job ? Results.Ok(ToDto(job)) : Results.NotFound())
+            .WithTags("Admin · Models").RequireAuthorization().Produces<ProcessingJobDto>();
+
+        app.MapGet("/api/admin/jobs/{jobId:guid}", async (Guid jobId, AppDbContext db, CancellationToken ct) =>
+            await db.ProcessingJobs.AsNoTracking().FirstOrDefaultAsync(j => j.Id == jobId, ct)
+                is { } job ? Results.Ok(ToDto(job)) : Results.NotFound())
+            .WithTags("Admin · Models").RequireAuthorization().Produces<ProcessingJobDto>();
 
         // The stored file itself, for the Studio preview (supports Range so large files can resume).
         app.MapGet("/api/admin/files/{id:guid}/content", async (Guid id, AppDbContext db, IFileStorage storage, CancellationToken ct) =>
@@ -136,10 +149,18 @@ public static class UploadEndpoints
                 Version = previous.Count == 0 ? 1 : previous.Max(p => p.Version) + 1,
             };
             db.ModelFiles.Add(modelFile);
+            var job = new ProcessingJob
+            {
+                ModelId = modelId,
+                ModelFileId = modelFile.Id,
+                Steps = JsonSerializer.Serialize(PipelineSteps.All.Select(n =>
+                    new JobStepDto(n, n == PipelineSteps.Upload ? "done" : "pending", null, n == PipelineSteps.Upload ? $"{format} · {content.Length:N0} bytes" : null)), JsonWeb),
+            };
+            db.ProcessingJobs.Add(job);
             await db.SaveChangesAsync(ct);
 
             sp.GetRequiredService<IBackgroundJobClient>()
-                .Enqueue<IModelFileProcessor>(p => p.ProcessAsync(modelFile.Id, CancellationToken.None));
+                .Enqueue<IModelFileProcessor>(p => p.ProcessAsync(job.Id, CancellationToken.None));
             log.LogInformation("Stored {Format} upload for model {ModelId} as {Key}", format, modelId, key);
         }
         finally
@@ -148,6 +169,11 @@ public static class UploadEndpoints
                 await termination.DeleteFileAsync(fileId, ct);
         }
     }
+
+    internal static ProcessingJobDto ToDto(ProcessingJob j) => new(
+        j.Id, j.ModelId, j.ModelFileId, j.Status.ToString(),
+        JsonSerializer.Deserialize<List<JobStepDto>>(j.Steps, JsonWeb) ?? [],
+        j.Error, j.CreatedAt, j.FinishedAt);
 
     private static bool TryReadMetadata(Dictionary<string, Metadata> metadata, out Guid modelId, out string format, out string error)
     {
