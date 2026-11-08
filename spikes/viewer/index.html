@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spike — viewer map modes</title>
+<style>
+  :root { color-scheme: dark; --bg:#0E0F12; --surface:#16181D; --border:#2A2E37; --text:#F2F3F5; --muted:#9AA0AB; --accent:#FF8A3D; }
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; display: flex; flex-direction: column; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  #stage { position: relative; flex: 1; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #drop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); pointer-events: none; }
+  #modes { position: absolute; left: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); }
+  #modes button { padding: 6px 10px; border: 0; border-radius: 8px; background: none; color: var(--text); font: inherit; cursor: pointer; }
+  #modes button[aria-pressed="true"] { background: var(--accent); color: #15110E; }
+  #modes button:disabled { color: var(--muted); opacity: .5; cursor: not-allowed; }
+  #info { color: var(--muted); font-family: ui-monospace, monospace; font-size: 12px; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<header>
+  <label>Model (.glb) <input id="file" type="file" accept=".glb,.gltf"></label>
+  <label><input id="spin" type="checkbox" checked> Turntable</label>
+  <span id="info">Drop a .glb anywhere · keys 1–7 switch map mode</span>
+</header>
+<div id="stage">
+  <div id="drop">Drop a .glb file here</div>
+  <div id="modes" role="group" aria-label="Map mode"></div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+stage.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1A1C21);
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 1000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.minPolarAngle = 0.15;
+controls.maxPolarAngle = Math.PI - 0.15;
+controls.addEventListener('start', () => { spin.checked = false; });
+
+const ktx2 = new KTX2Loader().setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/basis/').detectSupport(renderer);
+const loader = new GLTFLoader().setKTX2Loader(ktx2).setMeshoptDecoder(MeshoptDecoder);
+
+// Shows one raw channel of a data texture (no color-space conversion on purpose).
+const channelMaterial = (tex, channel, fallback) => new THREE.ShaderMaterial({
+  uniforms: { tex: { value: tex }, hasTex: { value: !!tex }, channel: { value: channel }, fallback: { value: fallback } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `uniform sampler2D tex; uniform bool hasTex; uniform int channel; uniform float fallback; varying vec2 vUv;
+    void main(){
+      if (!hasTex) { gl_FragColor = vec4(vec3(fallback), 1.0); return; }
+      vec4 c = texture2D(tex, vUv);
+      vec3 o = channel == 0 ? c.rgb : vec3(channel == 1 ? c.r : (channel == 2 ? c.g : c.b));
+      gl_FragColor = vec4(o, 1.0);
+    }`
+});
+
+// glTF packs metallic in B and roughness in G of metallicRoughnessTexture; occlusion lives in R.
+const MODES = [
+  { key: 'Final',      has: () => true,               make: m => m },
+  { key: 'Wireframe',  has: () => true,               make: () => new THREE.MeshBasicMaterial({ color: 0x7FD1FF, wireframe: true }) },
+  { key: 'Base color', has: m => true,                make: m => new THREE.MeshBasicMaterial({ map: m.map ?? null, color: m.map ? 0xffffff : m.color }) },
+  { key: 'Metallic',   has: m => !!m.metalnessMap,    make: m => channelMaterial(m.metalnessMap, 3, m.metalness ?? 0) },
+  { key: 'Roughness',  has: m => !!m.roughnessMap,    make: m => channelMaterial(m.roughnessMap, 2, m.roughness ?? 1) },
+  { key: 'Normal',     has: m => !!m.normalMap,       make: m => channelMaterial(m.normalMap, 0, 0.5) },
+  { key: 'AO',         has: m => !!m.aoMap,           make: m => channelMaterial(m.aoMap, 1, 1) },
+];
+
+let meshes = [];
+let current = 'Final';
+const modesEl = document.getElementById('modes');
+const buttons = MODES.map((mode, i) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = `${i + 1} ${mode.key}`;
+  b.addEventListener('click', () => setMode(mode.key));
+  modesEl.append(b);
+  return b;
+});
+
+function setMode(key) {
+  const mode = MODES.find(m => m.key === key);
+  if (!mode || buttons[MODES.indexOf(mode)].disabled) return;
+  current = key;
+  for (const mesh of meshes) {
+    const orig = mesh.userData.orig;
+    mesh.userData.cache ??= {};
+    mesh.material = mesh.userData.cache[key] ??= (key === 'Final' ? orig : mode.make(orig));
+  }
+  buttons.forEach((b, i) => b.setAttribute('aria-pressed', String(MODES[i].key === key)));
+}
+
+function load(file) {
+  file.arrayBuffer().then(buf => loader.parse(buf, '', gltf => {
+    scene.clear();
+    meshes = [];
+    let tris = 0;
+    gltf.scene.traverse(o => {
+      if (!o.isMesh || Array.isArray(o.material)) return;
+      o.userData.orig = o.material;
+      meshes.push(o);
+      tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3;
+    });
+    scene.add(gltf.scene);
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const size = box.getSize(new THREE.Vector3()).length();
+    const center = box.getCenter(new THREE.Vector3());
+    controls.target.copy(center);
+    camera.position.copy(center).add(new THREE.Vector3(0.6, 0.35, 1).normalize().multiplyScalar(size * 1.1));
+    camera.near = size / 100; camera.far = size * 20; camera.updateProjectionMatrix();
+    MODES.forEach((mode, i) => { buttons[i].disabled = !meshes.some(m => mode.has(m.userData.orig)); });
+    const maps = MODES.slice(3).filter((_, i) => !buttons[i + 3].disabled).map(m => m.key).join(', ') || 'none';
+    document.getElementById('info').textContent = `${file.name} · ${(file.size / 1048576).toFixed(1)} MB · ${Math.round(tris).toLocaleString()} tris · maps: ${maps}`;
+    document.getElementById('drop').hidden = true;
+    setMode('Final');
+  }, err => alert('Could not load: ' + err.message)));
+}
+
+document.getElementById('file').addEventListener('change', e => e.target.files[0] && load(e.target.files[0]));
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) load(f); });
+addEventListener('keydown', e => { const n = Number(e.key); if (n >= 1 && n <= 7) setMode(MODES[n - 1].key); });
+const spin = document.getElementById('spin');
+
+function resize() {
+  const { clientWidth: w, clientHeight: h } = stage;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+renderer.setAnimationLoop(() => {
+  controls.autoRotate = spin.checked;
+  controls.update();
+  renderer.render(scene, camera);
+});
+setMode('Final');
+</script>
+</body>
+</html>
