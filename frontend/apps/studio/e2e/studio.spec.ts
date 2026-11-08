@@ -84,6 +84,8 @@ test('log in → create model → upload .glb → preview map modes → publish'
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/models');
   await expect(page.getByRole('button', { name: 'Mở menu' })).toBeVisible();
+  await expect(page.getByRole('link', { name: title, exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth), 'no sideways scrolling on a phone').toBeLessThanOrEqual(390);
   await page.screenshot({ path: `${shots}/10-models-phone.png`, fullPage: true });
 });
 
