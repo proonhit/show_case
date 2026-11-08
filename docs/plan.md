@@ -63,6 +63,6 @@ Done when the demo page opens a 300K-triangle model smoothly on a laptop and a m
 - [x] Upload & edit: tus upload with progress, detected maps, `viewer-core` preview — done 08/11 (PR #9, tus-js-client instead of Uppy); job steps appear once the GĐ2 pipeline exists
 - [ ] EN/VI info form, viewer settings, thumbnail & extra images, Draft/Publish — form + Draft/Publish/Archive done (PR #9, no VeeValidate/Zod); viewer settings, thumbnail, extra images pending
 - [ ] Categories & tags; About page + CV upload
-- [ ] Playwright: login → upload → publish
+- [x] Playwright: login → upload → publish — done 08/11 (PR #10: runs in CI against the Docker stack, WebGL preview of all 7 modes, screenshots; caught and fixed sideways scrolling on phones)
 
 The detailed task list for every phase lives in the shared plan document.
