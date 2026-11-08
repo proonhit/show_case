@@ -146,3 +146,53 @@ public class StudioTests(ApiFactory factory)
         Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().GetAsync("/api/admin/stats")).StatusCode);
     }
 }
+
+[Collection(ApiCollection.Name)]
+public class ProfileFileTests(ApiFactory factory)
+{
+    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, .. new byte[64]];
+    private static readonly byte[] Pdf = [.. "%PDF-1.7\n"u8, .. new byte[64]];
+
+    private static MultipartFormDataContent Form(byte[] bytes, string name)
+    {
+        var form = new MultipartFormDataContent();
+        form.Add(new ByteArrayContent(bytes), "file", name);
+        return form;
+    }
+
+    [Fact]
+    public async Task Avatar_and_cv_upload_replace_and_delete()
+    {
+        var owner = await factory.CreateOwnerClientAsync();
+        var anon = factory.CreateClient();
+
+        var avatar = await owner.PutAsync("/api/admin/profile/avatar", Form(Png, "me.png"));
+        Assert.Equal(HttpStatusCode.OK, avatar.StatusCode);
+        var profile = (await avatar.Content.ReadFromJsonAsync<ProfileDto>())!;
+        Assert.StartsWith("/api/public/profile/avatar?v=", profile.AvatarUrl);
+
+        var img = await anon.GetAsync(profile.AvatarUrl);
+        Assert.Equal("image/png", img.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(Png, await img.Content.ReadAsByteArrayAsync());
+
+        var cv = (await (await owner.PutAsync("/api/admin/profile/cv", Form(Pdf, "cv.pdf"))).Content.ReadFromJsonAsync<ProfileDto>())!;
+        Assert.NotNull(cv.CvUrl);
+        Assert.Equal("application/pdf", (await anon.GetAsync(cv.CvUrl)).Content.Headers.ContentType?.MediaType);
+
+        // A new avatar gets a new URL.
+        var again = (await (await owner.PutAsync("/api/admin/profile/avatar", Form(Png, "me2.png"))).Content.ReadFromJsonAsync<ProfileDto>())!;
+        Assert.NotEqual(profile.AvatarUrl, again.AvatarUrl);
+
+        Assert.Equal(HttpStatusCode.OK, (await owner.DeleteAsync("/api/admin/profile/avatar")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await anon.GetAsync("/api/public/profile/avatar")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Wrong_file_types_are_refused()
+    {
+        var owner = await factory.CreateOwnerClientAsync();
+        Assert.Equal(HttpStatusCode.BadRequest, (await owner.PutAsync("/api/admin/profile/avatar", Form(Pdf, "me.png"))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await owner.PutAsync("/api/admin/profile/cv", Form(Png, "cv.pdf"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().PutAsync("/api/admin/profile/cv", Form(Pdf, "cv.pdf"))).StatusCode);
+    }
+}

@@ -98,3 +98,72 @@ test('a file that only pretends to be .glb is refused', async ({ page }) => {
   await page.locator('input[type=file]').setInputFiles({ name: 'fake.glb', mimeType: 'model/gltf-binary', buffer: Buffer.from('<html>not a model</html>') });
   await expect(page.getByRole('alert')).toContainText('nội dung không phải .glb/.fbx hợp lệ');
 });
+
+// A real 1×1 PNG and a minimal PDF for the About page uploads.
+const PNG_1PX = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+const PDF = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
+
+test('categories & tags: add, rename, delete', async ({ page }) => {
+  const stamp = Date.now().toString(36);
+  await login(page);
+  await page.getByRole('link', { name: 'Danh mục & tag' }).click();
+  await expect(page.getByRole('heading', { name: 'Danh mục & tag' })).toBeVisible();
+  // Seeded starter categories are there.
+  await expect(page.getByText('Characters', { exact: true })).toBeVisible();
+
+  const tags = page.getByRole('region', { name: /^Tag/ });
+  await tags.getByRole('button', { name: 'Thêm tag' }).click();
+  await tags.getByLabel('Tên EN').fill(`Hard surface ${stamp}`);
+  await tags.getByLabel('Tên VI').fill(`Bề mặt cứng ${stamp}`);
+  await expect(tags.getByLabel('Slug')).toHaveValue(`hard-surface-${stamp}`);
+  await tags.getByRole('button', { name: 'Thêm', exact: true }).click();
+  await expect(tags.getByText(`Hard surface ${stamp}`)).toBeVisible();
+
+  await tags.getByRole('button', { name: `Sửa Hard surface ${stamp}` }).click();
+  await tags.getByLabel('Tên EN').fill(`Hard-surface ${stamp}`);
+  await tags.getByRole('button', { name: 'Lưu' }).click();
+  await expect(tags.getByText(`Hard-surface ${stamp}`)).toBeVisible();
+  await page.screenshot({ path: `${shots}/11-taxonomy.png` });
+
+  const del = tags.getByRole('button', { name: `Xoá Hard-surface ${stamp}` });
+  await del.click();
+  await tags.getByRole('button', { name: `Bấm lần nữa để xoá Hard-surface ${stamp}` }).click();
+  await expect(tags.getByText(`Hard-surface ${stamp}`)).toHaveCount(0);
+});
+
+test('about page: profile, links, avatar and CV', async ({ page, request }) => {
+  await login(page);
+  await page.getByRole('link', { name: 'Trang About' }).click();
+  await page.getByLabel('Tên hiển thị').fill('E2E Artist');
+  await page.getByLabel('Dòng giới thiệu ngắn').fill('3D artist — props');
+  await page.getByRole('tab', { name: 'Tiếng Việt' }).click();
+  await page.getByLabel('Dòng giới thiệu ngắn').fill('Hoạ sĩ 3D — đồ vật');
+  await page.getByRole('button', { name: 'Thêm liên kết' }).click();
+  await page.getByLabel('Địa chỉ liên kết 1').fill('https://www.artstation.com/example');
+  await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  await expect(page.getByRole('button', { name: 'Đã lưu' })).toBeVisible();
+
+  // A bad link is refused by the server and shown.
+  await page.getByRole('button', { name: 'Thêm liên kết' }).click();
+  await page.getByLabel('Địa chỉ liên kết 2').fill('javascript:alert(1)');
+  await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  await expect(page.getByText('Link must be an http(s) URL or an email address.')).toBeVisible();
+  await page.getByRole('button', { name: /Xoá liên kết/ }).last().click();
+  await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  await expect(page.getByRole('button', { name: 'Đã lưu' })).toBeVisible();
+
+  await page.locator('input[type=file][accept^="image"]').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: PNG_1PX });
+  await expect(page.getByRole('img', { name: 'Ảnh đại diện hiện tại' })).toBeVisible();
+  await page.locator('input[type=file][accept="application/pdf"]').setInputFiles({ name: 'cv.pdf', mimeType: 'application/pdf', buffer: PDF });
+  await expect(page.getByRole('link', { name: 'CV.pdf' })).toBeVisible();
+  await page.screenshot({ path: `${shots}/12-about.png` });
+
+  // A "PDF" that is really an image is refused.
+  await page.locator('input[type=file][accept="application/pdf"]').setInputFiles({ name: 'fake.pdf', mimeType: 'application/pdf', buffer: PNG_1PX });
+  await expect(page.getByRole('alert')).toContainText('CV must be a PDF.');
+
+  const pub = await (await request.get('/api/public/profile')).json();
+  expect(pub.headlineVi).toBe('Hoạ sĩ 3D — đồ vật');
+  expect(pub.links.artstation).toBe('https://www.artstation.com/example');
+  expect((await request.get(pub.cvUrl)).headers()['content-type']).toContain('application/pdf');
+});
