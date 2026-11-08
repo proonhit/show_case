@@ -75,7 +75,9 @@ var app = builder.Build();
 if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
 {
     using var scope = app.Services.CreateScope();
-    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+    await DbSeeder.SeedAsync(db);
 }
 
 app.UseSerilogRequestLogging();
@@ -90,6 +92,8 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapAuthEndpoints();
 app.MapCategoryEndpoints();
 app.MapModelEndpoints();
+app.MapTagEndpoints();
+app.MapProfileEndpoints();
 app.MapPublicEndpoints();
 app.MapUploadEndpoints();
 
