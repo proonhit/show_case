@@ -117,11 +117,6 @@ jobs:
           pnpm --filter @showcase/studio exec playwright install --with-deps chromium
           pnpm --filter @showcase/studio e2e
 
-      - name: TEMP print screenshots
-        if: always()
-        working-directory: frontend/apps/studio/test-results/screens
-        run: for f in 05b-*.png 07-*.png; do echo "=====BEGIN $f"; base64 -w 0 "$f"; echo; echo "=====END $f"; done
-
       - name: Upload screenshots and report
         if: always()
         uses: actions/upload-artifact@v4
