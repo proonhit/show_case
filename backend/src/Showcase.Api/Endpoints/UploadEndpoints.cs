@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Hangfire;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Showcase.Application;
@@ -59,7 +60,13 @@ public static class UploadEndpoints
                 OnAuthorizeAsync = ctx =>
                 {
                     if (ctx.HttpContext.User.Identity?.IsAuthenticated != true)
+                    {
                         ctx.FailRequest(HttpStatusCode.Unauthorized);
+                        return Task.CompletedTask;
+                    }
+                    // Kestrel caps request bodies at 30 MB; a PATCH may carry up to the whole file.
+                    if (ctx.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
+                        limit.MaxRequestBodySize = options.MaxMegabytes * 1024L * 1024L + 1024 * 1024;
                     return Task.CompletedTask;
                 },
                 OnBeforeCreateAsync = async ctx =>
