@@ -41,7 +41,7 @@ test('log in → create model → upload .glb → preview map modes → publish'
   const id = page.url().split('/').pop()!;
 
   // Upload through tus; the server checks the bytes and records version 1.
-  await page.locator('input[type=file]').setInputFiles(cube);
+  await page.locator('input[type=file][accept=".glb,.fbx"]').setInputFiles(cube);
   await expect(page.getByRole('status')).toContainText('Đã nhận cube.glb');
   await expect(page.getByText('v1 · .glb')).toBeVisible();
 
@@ -60,6 +60,27 @@ test('log in → create model → upload .glb → preview map modes → publish'
   await page.locator('.stage').press('2'); // keyboard: 2 = wireframe
   await expect(modes.getByRole('button', { name: 'Khung lưới' })).toHaveAttribute('aria-pressed', 'true');
   await page.screenshot({ path: `${shots}/05-edit-wireframe.png` });
+
+  // Thumbnail straight from the viewer, an opening view and viewer settings, then an extra image.
+  await page.getByRole('button', { name: 'Chụp thumbnail' }).click();
+  await expect(page.getByText('Đã lưu thumbnail từ khung xem.')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Thumbnail hiện tại' })).toBeVisible();
+  await page.getByRole('button', { name: 'Dùng góc này' }).click();
+  await expect(page.getByText('Góc nhìn mở đầu: đã chọn')).toBeVisible();
+  await page.getByLabel('Chế độ map mặc định').selectOption('wireframe');
+  await page.getByRole('button', { name: 'Xám' }).click();
+  await page.getByRole('button', { name: 'Lưu cài đặt' }).click();
+  await expect(page.getByRole('button', { name: 'Đã lưu' }).last()).toBeVisible();
+  await page.getByLabel('Loại ảnh').selectOption('Render');
+  await page.locator('input[type=file][multiple]').setInputFiles({ name: 'render.png', mimeType: 'image/png', buffer: PNG_1PX });
+  await page.getByLabel('Chú thích tiếng Việt ảnh 1').fill('Ảnh render');
+  await page.getByLabel('Chú thích tiếng Việt ảnh 1').press('Tab');
+  await expect(page.getByRole('img', { name: 'Ảnh render' })).toBeVisible();
+  await page.screenshot({ path: `${shots}/05b-viewer-settings-images.png`, fullPage: true });
+
+  // The saved default mode is what the preview opens with.
+  await page.reload();
+  await expect(modes.getByRole('button', { name: 'Khung lưới' })).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 });
 
   // Publish → visible on the public API.
   await page.getByRole('button', { name: 'Publish' }).click();
@@ -95,7 +116,7 @@ test('a file that only pretends to be .glb is refused', async ({ page }) => {
   await page.getByLabel('Tên (bắt buộc)').fill(`Fake ${Date.now().toString(36)}`);
   await page.getByRole('button', { name: 'Tạo model' }).click();
   await expect(page).toHaveURL(/\/models\/[0-9a-f-]{36}$/);
-  await page.locator('input[type=file]').setInputFiles({ name: 'fake.glb', mimeType: 'model/gltf-binary', buffer: Buffer.from('<html>not a model</html>') });
+  await page.locator('input[type=file][accept=".glb,.fbx"]').setInputFiles({ name: 'fake.glb', mimeType: 'model/gltf-binary', buffer: Buffer.from('<html>not a model</html>') });
   await expect(page.getByRole('alert')).toContainText('nội dung không phải .glb/.fbx hợp lệ');
 });
 

@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { ApiError, type ModelDetailDto, type UpsertModelRequest } from '@showcase/api-client';
+import { ApiError, type components, type ModelDetailDto, type UpsertModelRequest } from '@showcase/api-client';
+import type { CameraView, MapMode } from '@showcase/viewer-core';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import AppIcon from '../components/AppIcon.vue';
+import ImagesPanel from '../components/ImagesPanel.vue';
 import ModelPreview from '../components/ModelPreview.vue';
+import ViewerSettingsPanel from '../components/ViewerSettingsPanel.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import UploadPanel from '../components/UploadPanel.vue';
-import { api, queryKeys } from '../api';
+import { api, queryKeys, uploadFile } from '../api';
 import { SLUG_PATTERN, slugify, timeAgo } from '../format';
 
 const route = useRoute();
@@ -174,7 +177,64 @@ const previewSrc = computed(() => {
   return current?.format === 'glb' ? `/api/admin/files/${current.id}/content` : null;
 });
 
-onBeforeRouteLeave(() => (dirty.value && !saving.value ? window.confirm('Có thay đổi chưa lưu. Rời trang?') : true));
+// ---- viewer settings and images ----------------------------------------------
+
+type ViewerSettings = components['schemas']['ViewerSettingsDto'];
+const DEFAULT_SETTINGS: ViewerSettings = { autoRotate: true, autoRotateSpeed: 20, background: null, defaultMode: 'final', cameraPosition: null, cameraTarget: null };
+const viewerDraft = ref<ViewerSettings>({ ...DEFAULT_SETTINGS });
+const viewerSaved = ref(JSON.stringify(DEFAULT_SETTINGS));
+const viewerDirty = computed(() => JSON.stringify(viewerDraft.value) !== viewerSaved.value);
+const viewerSaving = ref(false);
+const viewerError = ref('');
+const availableModes = ref<Record<MapMode, boolean> | null>(null);
+
+watch(() => model.data.value?.viewerSettings, (v) => {
+  if (!v) return;
+  // Keep unsaved edits if the model reloads in the background.
+  const hadEdits = viewerDirty.value;
+  const next = { ...DEFAULT_SETTINGS, ...v };
+  viewerSaved.value = JSON.stringify(next);
+  if (!hadEdits || viewerSaving.value) viewerDraft.value = next;
+}, { immediate: true });
+
+async function saveViewer() {
+  viewerSaving.value = true;
+  viewerError.value = '';
+  try {
+    await api.PUT('/api/admin/models/{id}/viewer', { params: { path: { id: id.value! } }, body: viewerDraft.value });
+    viewerSaved.value = JSON.stringify(viewerDraft.value);
+    void queryClient.invalidateQueries({ queryKey: queryKeys.model(id.value!) });
+  } catch {
+    viewerError.value = 'Không lưu được cài đặt viewer.';
+  } finally {
+    viewerSaving.value = false;
+  }
+}
+
+function useCamera(view: CameraView) {
+  viewerDraft.value = { ...viewerDraft.value, cameraPosition: [...view.position], cameraTarget: [...view.target] };
+}
+
+const shotMessage = ref('');
+async function saveThumbnail(image: Blob) {
+  shotMessage.value = '';
+  try {
+    await uploadFile(`/api/admin/models/${id.value}/images`, image, 'POST', { kind: 'Thumbnail' }, 'thumbnail.webp');
+    shotMessage.value = 'Đã lưu thumbnail từ khung xem.';
+    await refreshImages();
+  } catch {
+    shotMessage.value = 'Không lưu được thumbnail.';
+  }
+}
+
+const refreshImages = () => Promise.all([
+  queryClient.invalidateQueries({ queryKey: queryKeys.model(id.value!) }),
+  queryClient.invalidateQueries({ queryKey: queryKeys.models }),
+]);
+
+onBeforeRouteLeave(() => ((dirty.value || viewerDirty.value) && !saving.value
+  ? window.confirm('Có thay đổi chưa lưu. Rời trang?')
+  : true));
 
 const toggleTag = (tagId: string) => {
   const i = form.tagIds.indexOf(tagId);
@@ -263,9 +323,15 @@ const toggleTag = (tagId: string) => {
       <div class="side">
         <UploadPanel v-if="id" :model-id="id" />
         <section v-else class="card muted locked"><AppIcon name="lock" :size="16" />Lưu model trước để upload file 3D.</section>
-        <ModelPreview v-if="id" :src="previewSrc" />
+        <ModelPreview v-if="id" :src="previewSrc" :settings="viewerDraft"
+          @thumbnail="saveThumbnail" @camera="useCamera" @available="availableModes = $event" />
+        <p v-if="shotMessage" class="muted" role="status">{{ shotMessage }}</p>
+        <ViewerSettingsPanel v-if="id" v-model="viewerDraft" :available="availableModes" :dirty="viewerDirty"
+          :saving="viewerSaving" :error="viewerError" @save="saveViewer"
+          @reset="viewerDraft = { ...viewerDraft, cameraPosition: null, cameraTarget: null }" />
       </div>
     </div>
+    <ImagesPanel v-if="id && model.data.value" :model-id="id" :images="model.data.value.images" @changed="refreshImages" />
   </div>
 </template>
 

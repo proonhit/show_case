@@ -106,6 +106,7 @@ app.MapTagEndpoints();
 app.MapProfileEndpoints();
 app.MapPublicEndpoints();
 app.MapUploadEndpoints();
+app.MapImageEndpoints();
 
 app.Run();
 

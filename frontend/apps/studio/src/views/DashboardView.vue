@@ -29,6 +29,7 @@ const todo = computed(() => {
     if (m.status === 'Archived') continue;
     if (!viTitleOf(m)) items.push(`${titleOf(m)}: thiếu bản tiếng Việt`);
     if (m.triangles == null) items.push(`${titleOf(m)}: chưa có file 3D đã xử lý`);
+    if (!m.thumbnailUrl) items.push(`${titleOf(m)}: chưa có thumbnail`);
   }
   return items;
 });
@@ -63,6 +64,7 @@ const todo = computed(() => {
         <p v-if="models.isLoading.value" class="muted">Đang tải…</p>
         <p v-else-if="!recent.length" class="muted">Chưa có model nào. Bắt đầu bằng nút “Upload model mới”.</p>
         <RouterLink v-for="m in recent" :key="m.id" :to="`/models/${m.id}`" class="recent-row">
+          <span class="thumb"><img v-if="m.thumbnailUrl" :src="m.thumbnailUrl" alt="" loading="lazy" /><AppIcon v-else name="box" :size="16" /></span>
           <span class="name">{{ titleOf(m) }}</span>
           <StatusBadge :status="m.status" />
           <span class="mono muted tris">{{ formatTris(m.triangles) }} tris</span>
@@ -99,6 +101,8 @@ const todo = computed(() => {
 .link { font-size: 13px; font-weight: 500; text-decoration: none; }
 .recent-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--border); color: var(--text); text-decoration: none; }
 .recent-row:hover .name { color: var(--accent); }
+.thumb { width: 40px; height: 40px; flex: none; border-radius: 8px; overflow: hidden; background: var(--viewport); display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
 .name { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tris { width: 90px; text-align: right; }
 .when { width: 110px; text-align: right; }

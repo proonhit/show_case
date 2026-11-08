@@ -33,9 +33,10 @@ export const queryKeys = {
 export const MAX_UPLOAD_MB = 100;
 
 /** Sends one file as multipart field "file" (openapi-fetch only does JSON bodies). Returns the JSON answer. */
-export async function uploadFile<T>(url: string, file: File, method: 'PUT' | 'POST' = 'PUT'): Promise<T> {
+export async function uploadFile<T>(url: string, file: Blob, method: 'PUT' | 'POST' = 'PUT', fields: Record<string, string> = {}, fileName?: string): Promise<T> {
   const form = new FormData();
-  form.append('file', file);
+  form.append('file', file, fileName ?? (file instanceof File ? file.name : 'upload'));
+  for (const [k, v] of Object.entries(fields)) form.append(k, v);
   const res = await fetch(url, { method, body: form, credentials: 'same-origin' });
   if (!res.ok) {
     let problem: ApiError['problem'];

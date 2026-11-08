@@ -61,8 +61,10 @@ Done when the demo page opens a 300K-triangle model smoothly on a laptop and a m
 - [x] Dashboard: 4 stat tiles, recent models, to-do list — done 08/11 (PR #8; Showcase build status waits for GĐ5)
 - [x] Model list: status filter, drag-and-drop order, featured, quick actions — done 08/11 (PR #8)
 - [x] Upload & edit: tus upload with progress, detected maps, `viewer-core` preview — done 08/11 (PR #9, tus-js-client instead of Uppy); job steps appear once the GĐ2 pipeline exists
-- [ ] EN/VI info form, viewer settings, thumbnail & extra images, Draft/Publish — form + Draft/Publish/Archive done (PR #9, no VeeValidate/Zod); viewer settings, thumbnail, extra images pending
+- [x] EN/VI info form, viewer settings, thumbnail & extra images, Draft/Publish — done 08/11 (form PR #9, no VeeValidate/Zod; viewer settings, thumbnail captured from the 3D view, extra images PR #12)
 - [x] Categories & tags; About page + CV upload — done 08/11 (PR #11, plus avatar; covered by e2e)
 - [x] Playwright: login → upload → publish — done 08/11 (PR #10: runs in CI against the Docker stack, WebGL preview of all 7 modes, screenshots; caught and fixed sideways scrolling on phones)
+
+GĐ4 done 08/11 (PRs #8–#12) apart from the upload job steps, which appear with the GĐ2 pipeline. Tag `v0.4` after merge.
 
 The detailed task list for every phase lives in the shared plan document.

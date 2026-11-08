@@ -30,7 +30,8 @@ public record ModelSummaryDto(
     IReadOnlyList<TranslationDto> Translations,
     int? Triangles,
     IReadOnlyList<string> TagSlugs,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? ThumbnailUrl = null);
 
 /// <summary>Everything the Studio edit form needs.</summary>
 public record ModelDetailDto(
@@ -45,7 +46,28 @@ public record ModelDetailDto(
     DateOnly? CompletedAt,
     IReadOnlyList<TranslationDto> Translations,
     IReadOnlyList<Guid> TagIds,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    ViewerSettingsDto ViewerSettings,
+    IReadOnlyList<ModelImageDto> Images);
+
+/// <summary>
+/// How the viewer opens this model. Camera position/target are both set (a saved view) or both null (auto framing).
+/// <c>Background</c> null = the site's theme colour.
+/// </summary>
+public record ViewerSettingsDto(
+    bool AutoRotate = true,
+    double AutoRotateSpeed = 20,
+    string? Background = null,
+    string DefaultMode = "final",
+    double[]? CameraPosition = null,
+    double[]? CameraTarget = null);
+
+/// <summary>Thumbnail (one per model), renders, wireframes and process shots.</summary>
+public record ModelImageDto(Guid Id, string Kind, string Url, string? CaptionEn, string? CaptionVi, int SortOrder);
+
+public record UpdateImageRequest(string? CaptionEn, string? CaptionVi);
+
+public record ReorderRequest(List<Guid> Ids);
 
 public record TagDto(Guid Id, string NameEn, string NameVi, string Slug);
 
