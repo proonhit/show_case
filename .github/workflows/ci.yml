@@ -77,15 +77,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build API image and make deploy/.env
-        run: |
-          docker build --target api -t showcase-api:dev backend
-          HASH=$(docker run --rm showcase-api:dev hash-password smoke-password)
-          cp deploy/.env.example deploy/.env
-          sed -i "s|^ADMIN_PASSWORD_HASH=.*|ADMIN_PASSWORD_HASH=$HASH|" deploy/.env
-
-      - name: Start PostgreSQL + API + Worker
-        run: docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env up -d --build
+      # The same one-command start a developer uses on Windows (pwsh is on the runner).
+      - name: Start PostgreSQL + API + Worker with scripts/dev-up.ps1
+        shell: pwsh
+        run: ./scripts/dev-up.ps1 -Password smoke-password
 
       - name: Log in, create a model, upload 100 MB with tus
         run: deploy/smoke-test.sh http://localhost:5080 smoke-password

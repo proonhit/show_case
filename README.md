@@ -7,7 +7,25 @@ The project has two web apps sharing one .NET backend:
 - **Studio** — private admin (single owner) to upload `.glb` / `.fbx`, fill in EN/VI details and publish.
 - **Showcase** — public, statically built site for recruiters, deployed to Cloudflare Pages so it stays up even when the server is off.
 
-> Status: **GĐ0 — setup & spikes** (see [docs/plan.md](docs/plan.md)). Full spec: [docs/spec.md](docs/spec.md).
+> Status: GĐ0–GĐ5 built (backend, pipeline, viewer, Studio, Showcase); GĐ6 deploy next — see [docs/plan.md](docs/plan.md). Full spec: [docs/spec.md](docs/spec.md).
+
+## Run it locally
+
+Needs **Docker Desktop** (running), **Git**, and for the web apps **Node 22** + **pnpm** (`corepack enable`).
+
+```powershell
+git clone https://github.com/proonhit/show_case.git
+cd show_case
+./scripts/dev-up.ps1 -Frontend     # first run asks for the Studio password; first build takes ~5–10 min (Blender)
+```
+
+| | |
+| --- | --- |
+| Studio (admin) | http://localhost:5174 — log in with the password you chose |
+| Showcase (public) | http://localhost:5175 — rebuilt from published models: `$env:API_URL='http://localhost:5080'; pnpm --filter @showcase/showcase build; pnpm --filter @showcase/showcase preview` (in `frontend/`) |
+| API | http://localhost:5080/health, OpenAPI at `/openapi/v1.json` |
+
+`./scripts/dev-up.ps1 -Down` stops everything (data kept); `-Reset` deletes the local data. Without `-Frontend` only the backend starts; then run `pnpm install` and `pnpm --filter @showcase/studio dev` in `frontend/` yourself. On macOS/Linux use `pwsh ./scripts/dev-up.ps1`.
 
 ## Architecture
 
@@ -30,11 +48,11 @@ flowchart TB
 | Area | Choice |
 | --- | --- |
 | Backend | ASP.NET Core (.NET 10), EF Core + Npgsql, FluentValidation, Serilog |
-| Upload | tus (tusdotnet + Uppy), chunked, up to 100 MB |
-| 3D pipeline | Blender headless (.fbx → .glb), `gltf-transform` (Meshopt, KTX2/WebP), SharpGLTF (stats) |
+| Upload | tus (tusdotnet + tus-js-client), chunked, up to 100 MB |
+| 3D pipeline | Blender headless (.fbx → .glb), `gltf-transform` (Meshopt, WebP), SharpGLTF (stats), ImageSharp |
 | Jobs | Hangfire on PostgreSQL, separate worker container |
-| Studio | Vue 3 + Vite + TypeScript, PrimeVue, Pinia, TanStack Query |
-| Showcase | Nuxt (static generate), @nuxtjs/i18n, Tailwind |
+| Studio | Vue 3 + Vite + TypeScript, TanStack Vue Query, typed client from OpenAPI |
+| Showcase | Nuxt (static generate), @nuxtjs/i18n |
 | Viewer | Three.js in a framework-free TypeScript package `viewer-core` |
 | Infra | Docker Compose, Cloudflare Tunnel, Cloudflare Pages, GitHub Actions |
 
