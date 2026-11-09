@@ -77,6 +77,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Windows PowerShell 5.1 reads BOM-less scripts as ANSI, so non-ASCII text breaks parsing there.
+      - name: PowerShell scripts are plain ASCII
+        run: "! grep -nP '[^\\x00-\\x7F]' scripts/*.ps1"
+
       # The same one-command start a developer uses on Windows (pwsh is on the runner).
       - name: Start PostgreSQL + API + Worker with scripts/dev-up.ps1
         shell: pwsh

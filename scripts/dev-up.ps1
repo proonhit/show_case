@@ -11,6 +11,8 @@
 
   Needs: Docker Desktop (running). For -Frontend also Node 22 + pnpm (corepack enable).
   Works in Windows PowerShell 5.1, PowerShell 7 and pwsh on Linux/macOS.
+  Keep this file plain ASCII: Windows PowerShell 5.1 reads files without a BOM as ANSI,
+  and some UTF-8 bytes then turn into quote characters that break parsing.
 #>
 param(
   [string]$Password,
@@ -43,7 +45,7 @@ if ($Down -or $Reset) {
 if (-not (Test-Path $envFile)) {
   Step 'First run: building the API image to hash your Studio password'
   if (-not $Password) {
-    $secure = Read-Host 'Choose the Studio password (Mật khẩu đăng nhập Studio)' -AsSecureString
+    $secure = Read-Host 'Choose the Studio password' -AsSecureString
     $Password = [Net.NetworkCredential]::new('', $secure).Password
   }
   if ($Password.Length -lt 8) { throw 'Use a password of at least 8 characters.' }
@@ -63,7 +65,7 @@ if (-not (Test-Path $envFile)) {
   Write-Host "Wrote deploy/.env (keep it private; delete it to choose a new password)."
 }
 
-Step 'Building and starting PostgreSQL + API + Worker (first build downloads Blender, ~5–10 min)'
+Step 'Building and starting PostgreSQL + API + Worker (first build downloads Blender, ~5-10 min)'
 $up = $compose + @('up', '-d', '--build')
 docker @up
 if ($LASTEXITCODE -ne 0) { throw 'docker compose up failed. See the messages above.' }
@@ -97,7 +99,7 @@ if ($Frontend) {
 Write-Host @"
 
 Running:
-  API + OpenAPI   http://localhost:5080/health · http://localhost:5080/openapi/v1.json
+  API + OpenAPI   http://localhost:5080/health , http://localhost:5080/openapi/v1.json
   Studio          http://localhost:5174   (cd frontend; pnpm --filter @showcase/studio dev)
   Showcase        http://localhost:5175   (rebuild after publishing: `$env:API_URL='http://localhost:5080'; pnpm --filter @showcase/showcase build; pnpm --filter @showcase/showcase preview)
   PostgreSQL      localhost:5432 (user/db: showcase, password in deploy/.env)
